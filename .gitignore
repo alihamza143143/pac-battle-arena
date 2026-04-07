@@ -38,10 +38,13 @@ build/
 coverage/
 .nyc_output/
 
-# Docs (keep in repo wiki or separate)
-docs/
+# Docs
 *.md
 !README.md
+!docs/**/*.md
+
+# Superpowers brainstorm (local visual companion sessions)
+.superpowers/
 
 # Temp
 tmp/
