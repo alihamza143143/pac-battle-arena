@@ -252,12 +252,16 @@ pac-battle-arena/
 
 ---
 
-## 10. Like System
+## 10. Like System (Weakest Action)
 
 - Sending a like **activates** the player (transitions from inactive to active)
 - Small speed increase
 - Boosts activity score (prevents becoming inactive)
 - No direct point gain from likes
+- **Like-only players are weaker than gift players:**
+  - Like-activated players deal only **+2 points per hit** (vs 5 for Rose)
+  - Like-activated players **CANNOT collect coins** — coins require Rose or higher gift
+  - This creates a clear hierarchy: Like = very weak, Rose = activation, Gifts = real power
 
 ---
 
@@ -450,16 +454,18 @@ Minimal, clean sound design using Web Audio API (generated tones, no heavy audio
   - Big coin: +15 points (rare, larger, golden glow)
 
 **Collection:**
-- ONLY active players and active AI can collect coins
+- ONLY players activated by Rose or higher gift can collect coins
+- Like-only activated players CANNOT collect coins
 - Inactive players, inactive AI, and neutral (red) players CANNOT collect coins
-- Coins pass through inactive/neutral players with no effect
+- Coins pass through ineligible players with no effect
 - Coin disappears on contact with a small sparkle effect
 - Points added to the collector
 
 **Respawn:**
-- When all coins are collected → new batch spawns after 5 seconds
-- Also: partial respawn every 30 seconds (refill back to 20-30 coins)
-- Coins never fully run out — always something to collect
+- Coins respawn every 30 seconds (fixed timer, not triggered by collection)
+- When the 30-second timer fires, a new batch of 20-30 coins spawns at random positions
+- If some old coins remain, they stay — new ones add on top
+- This creates a rhythm: collect → wait → new wave → collect
 
 **Why this works:**
 - Adds constant movement incentive (even without combat)
