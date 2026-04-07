@@ -5,6 +5,7 @@
 A multiplayer Pac-Man style arena game for TikTok Live. Players join from TikTok Live and interact in real time via gifts, likes, and comments. The game runs as an OBS browser source in 1:1 square format (1080x1080).
 
 **TikTok Username:** playandwin2026
+**Language:** German (all UI text in German)
 
 ---
 
@@ -36,6 +37,8 @@ pac-battle-arena/
 │   ├── RoundManager.js       # 15-min timer, winners, trophies
 │   ├── GiftSystem.js         # Gift effects (Rose through Fire Truck)
 │   ├── GrowthSystem.js       # Size/speed/spin scaling
+│   ├── CoinSystem.js         # Coin spawning, collection, respawn
+│   ├── SoundManager.js       # Web Audio API sound effects
 │   ├── WinTracker.js         # Session win tracking across rounds
 │   └── tiktok/
 │       ├── TikTokBridge.js   # tiktok-live-connector wrapper
@@ -47,6 +50,7 @@ pac-battle-arena/
 │   │   ├── ArenaRenderer.js  # Background image, ambient effects
 │   │   ├── PacManRenderer.js # Pac-Man drawing, mouth animation, profile pics
 │   │   ├── HUDRenderer.js    # Team scores, timer, king, leaderboard
+│   │   ├── CoinRenderer.js   # Coin dots, sparkle effects on pickup
 │   │   ├── EffectRenderer.js # Gift effects, glow, particles, freeze, fire
 │   │   └── WinScreen.js      # Round end celebration, trophies, confetti
 │   └── assets/
@@ -304,12 +308,12 @@ All UI floats on the game arena with semi-transparent backgrounds.
 
 **Above neutral players:**
 ```
-"Choose a team"
+"Wähle ein Team"
 ```
 
 **Above team players:**
 ```
-Username (points)
+Username (Punkte)
 ```
 
 ---
@@ -412,7 +416,57 @@ Gift IDs must be configured in `GiftMapper.js`. Client will provide exact TikTok
 
 ---
 
-## 17. Assumptions (Safe Defaults)
+## 17. Sound Effects
+
+Minimal, clean sound design using Web Audio API (generated tones, no heavy audio files).
+
+**Triggers:**
+- Gift sent: soft chime/ping (pitch increases with gift tier)
+- Points gained on hit: quick satisfying pop
+- Money Gun activation: cash register / coin shower sound
+- Fire Truck activation: explosion boom
+- Freeze (Money Gun): ice/crystal sound
+- Round end / winner: victory fanfare (short)
+- King crown transfer: royal horn (subtle)
+
+**Rules:**
+- Keep it minimal and satisfying, not annoying
+- Not too loud — TikTok Live has its own audio stream
+- No background music (would conflict with streamer's music)
+- All sounds generated via Web Audio API (no external audio files needed)
+
+---
+
+## 18. Coin Pickup System
+
+**Coins scattered on the arena floor for players to collect.**
+
+**Spawning:**
+- 20-30 coins placed randomly across the arena at round start
+- Coins are small glowing dots/circles matching the neon aesthetic
+- Different coin types possible:
+  - Regular coin: +5 points (common, small, white/yellow glow)
+  - Big coin: +15 points (rare, larger, golden glow)
+
+**Collection:**
+- Any Pac-Man (active or inactive, player or AI) can collect coins by touching them
+- Coin disappears on contact with a small sparkle effect
+- Points added to the collector
+
+**Respawn:**
+- When all coins are collected → new batch spawns after 5 seconds
+- Also: partial respawn every 30 seconds (refill back to 20-30 coins)
+- Coins never fully run out — always something to collect
+
+**Why this works:**
+- Adds constant movement incentive (even without combat)
+- Gives neutral/new players something to do before joining a team
+- Classic Pac-Man dot-eating feel
+- More visual activity on screen (glowing coins everywhere)
+
+---
+
+## 19. Assumptions (Safe Defaults)
 
 These items were not explicitly specified by the client. Safe defaults chosen, easy to change:
 
