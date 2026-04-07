@@ -449,7 +449,9 @@ Minimal, clean sound design using Web Audio API (generated tones, no heavy audio
   - Big coin: +15 points (rare, larger, golden glow)
 
 **Collection:**
-- Any Pac-Man (active or inactive, player or AI) can collect coins by touching them
+- ONLY active players and active AI can collect coins
+- Inactive players, inactive AI, and neutral (red) players CANNOT collect coins
+- Coins pass through inactive/neutral players with no effect
 - Coin disappears on contact with a small sparkle effect
 - Points added to the collector
 
@@ -460,7 +462,7 @@ Minimal, clean sound design using Web Audio API (generated tones, no heavy audio
 
 **Why this works:**
 - Adds constant movement incentive (even without combat)
-- Gives neutral/new players something to do before joining a team
+- Rewards active players — another reason to send gifts/likes
 - Classic Pac-Man dot-eating feel
 - More visual activity on screen (glowing coins everywhere)
 
