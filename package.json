@@ -1,0 +1,13 @@
+{
+  "name": "pac-battle-arena",
+  "version": "1.0.0",
+  "description": "TikTok Live Pac-Man Arena Game",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "keywords": ["tiktok", "live", "game", "pacman", "arena"],
+  "author": "alihamza143143",
+  "license": "MIT"
+}

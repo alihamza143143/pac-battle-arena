@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Build
+dist/
+build/
+.cache/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Docs (keep in repo wiki or separate)
+docs/
+*.md
+!README.md
+
+# Temp
+tmp/
+temp/
+*.tmp
