@@ -9,11 +9,20 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+// Parse JSON bodies
+app.use(express.json());
+
 // Serve client files
 app.use(express.static(path.join(__dirname, '..', 'client')));
 
 // Game instance
 const game = new Game();
+
+// Debug endpoint — simulate TikTok events
+app.post('/debug-event', (req, res) => {
+  game.eventQueue.push(req.body);
+  res.json({ ok: true });
+});
 
 // WebSocket connections
 const clients = new Set();

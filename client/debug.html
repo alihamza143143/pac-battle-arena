@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PAC BATTLE ARENA — Debug Panel</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1a1a2e; color: #fff; font-family: Arial; padding: 20px; }
+    h1 { color: #ffd700; margin-bottom: 10px; font-size: 22px; }
+    h2 { color: #4488ff; margin: 15px 0 8px; font-size: 16px; }
+    .section { background: #16213e; padding: 12px; border-radius: 8px; margin-bottom: 10px; }
+    input { background: #0f3460; color: #fff; border: 1px solid #444; padding: 6px 10px; border-radius: 4px; width: 150px; }
+    button { padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin: 3px; }
+    .btn-pink { background: #ff69b4; color: #fff; }
+    .btn-blue { background: #4488ff; color: #fff; }
+    .btn-yellow { background: #ffdd00; color: #000; }
+    .btn-gold { background: #ffd700; color: #000; }
+    .btn-red { background: #ff4400; color: #fff; }
+    .btn-green { background: #00cc66; color: #fff; }
+    .btn-purple { background: #9b59b6; color: #fff; }
+    .btn-gray { background: #555; color: #fff; }
+    .log { background: #0a0a2e; padding: 8px; border-radius: 4px; height: 120px; overflow-y: auto; font-size: 12px; font-family: monospace; margin-top: 8px; }
+    .status { color: #0f0; font-size: 13px; }
+    .row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h1>🎮 PAC BATTLE ARENA — Debug Panel</h1>
+  <p class="status" id="status">Connecting...</p>
+
+  <div class="section">
+    <h2>👤 Player Name</h2>
+    <input type="text" id="username" value="TestPlayer" placeholder="Username">
+  </div>
+
+  <div class="section">
+    <h2>1. Join Game (spawn as neutral red)</h2>
+    <div class="row">
+      <button class="btn-gray" onclick="sendJoin()">Join Live</button>
+      <button class="btn-gray" onclick="sendChat()">Send Chat</button>
+      <button class="btn-green" onclick="sendLike()">❤️ Send Like</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>2. Join Team</h2>
+    <div class="row">
+      <button class="btn-pink" onclick="sendGift('rose')">🌹 Rose → Pink Team</button>
+      <button class="btn-blue" onclick="sendGift('tiktok')">🎵 TikTok → Blue Team</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>3. Send Gifts (Power-ups)</h2>
+    <div class="row">
+      <button class="btn-pink" onclick="sendGift('rose')">🌹 Rose (1 coin)</button>
+      <button class="btn-yellow" onclick="sendGift('donut')">🍩 Donut (30 coins)</button>
+      <button class="btn-purple" onclick="sendGift('confetti')">🎊 Confetti (100 coins)</button>
+      <button class="btn-gold" onclick="sendGift('moneygun')">💰 Money Gun (500 coins)</button>
+      <button class="btn-red" onclick="sendGift('firetruck')">🚒 Fire Truck (Ultimate)</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>4. Multi-Player Test</h2>
+    <div class="row">
+      <button class="btn-pink" onclick="spawnPlayer('Sara', 'rose')">Sara → Pink</button>
+      <button class="btn-blue" onclick="spawnPlayer('Omar', 'tiktok')">Omar → Blue</button>
+      <button class="btn-pink" onclick="spawnPlayer('Mina', 'rose')">Mina → Pink</button>
+      <button class="btn-blue" onclick="spawnPlayer('Zain', 'tiktok')">Zain → Blue</button>
+      <button class="btn-pink" onclick="spawnPlayer('Hana', 'rose')">Hana → Pink</button>
+      <button class="btn-blue" onclick="spawnPlayer('Ali', 'tiktok')">Ali → Blue</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>5. Stress Test</h2>
+    <div class="row">
+      <button class="btn-green" onclick="spamLikes()">Spam 10 Likes</button>
+      <button class="btn-gold" onclick="spawnAll()">Spawn 6 Players + Gifts</button>
+    </div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script>
+    const ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port}`);
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+
+    ws.onopen = () => { statusEl.textContent = '✅ Connected to game server'; };
+    ws.onclose = () => { statusEl.textContent = '❌ Disconnected'; statusEl.style.color = '#f00'; };
+    ws.onmessage = () => {}; // ignore game state on debug panel
+
+    function log(msg) {
+      const line = document.createElement('div');
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function getUsername() { return document.getElementById('username').value || 'TestPlayer'; }
+
+    function sendEvent(event) {
+      // Send to server via a POST endpoint
+      fetch('/debug-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(event),
+      });
+      log(`Sent: ${event.type} ${event.giftType || ''} (${event.username})`);
+    }
+
+    function sendJoin() {
+      sendEvent({ type: 'join', username: getUsername(), nickname: getUsername(), avatarUrl: '' });
+    }
+
+    function sendChat() {
+      sendEvent({ type: 'chat', username: getUsername(), nickname: getUsername(), avatarUrl: '', comment: 'Hello!' });
+    }
+
+    function sendLike() {
+      sendEvent({ type: 'like', username: getUsername(), nickname: getUsername(), avatarUrl: '' });
+    }
+
+    function sendGift(giftType) {
+      sendEvent({ type: 'gift', username: getUsername(), nickname: getUsername(), avatarUrl: '', giftType });
+    }
+
+    function spawnPlayer(name, team) {
+      sendEvent({ type: 'join', username: name, nickname: name, avatarUrl: '' });
+      setTimeout(() => sendEvent({ type: 'gift', username: name, nickname: name, avatarUrl: '', giftType: team }), 200);
+    }
+
+    function spamLikes() {
+      for (let i = 0; i < 10; i++) {
+        setTimeout(() => sendLike(), i * 100);
+      }
+    }
+
+    function spawnAll() {
+      const players = [
+        ['Sara', 'rose'], ['Omar', 'tiktok'], ['Mina', 'rose'],
+        ['Zain', 'tiktok'], ['Hana', 'rose'], ['Ali', 'tiktok'],
+      ];
+      players.forEach(([name, team], i) => {
+        setTimeout(() => spawnPlayer(name, team), i * 300);
+      });
+      // Give them gifts after joining
+      setTimeout(() => {
+        sendEvent({ type: 'gift', username: 'Sara', giftType: 'donut' });
+        sendEvent({ type: 'gift', username: 'Omar', giftType: 'confetti' });
+        sendEvent({ type: 'gift', username: 'Zain', giftType: 'moneygun' });
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
+```
+
+Now I need to add the debug endpoint to the server.
+
+<function_calls>
+<invoke name="Read">
+<parameter name="file_path">C:\Users\ARFA TECH\Desktop\html5 and games\tikTok Game\server\index.js

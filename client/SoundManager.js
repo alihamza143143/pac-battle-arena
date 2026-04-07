@@ -1,5 +1,5 @@
 class SoundManager {
-  constructor() { this.ctx = null; this.enabled = true; this.volume = 0.3; }
+  constructor() { this.ctx = null; this.enabled = false; this.volume = 0.3; }
 
   _getCtx() {
     if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();

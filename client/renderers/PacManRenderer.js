@@ -4,17 +4,19 @@ class PacManRenderer {
     this.container = new PIXI.Container();
     this.app.stage.addChild(this.container);
     this.sprites = new Map();
-    this.avatarTextures = new Map();
+    this.avatarImages = new Map(); // url -> HTMLImageElement
+    this.time = 0;
   }
 
   update(gameState) {
+    this.time += 0.016;
     const entities = gameState.entities;
     const currentIds = new Set(entities.map(e => e.id));
 
     for (const [id, group] of this.sprites) {
       if (!currentIds.has(id)) {
-        this.container.removeChild(group);
-        group.destroy({ children: true });
+        this.container.removeChild(group.sprite);
+        group.sprite.destroy(true);
         this.sprites.delete(id);
       }
     }
@@ -22,150 +24,203 @@ class PacManRenderer {
     for (const entity of entities) {
       let group = this.sprites.get(entity.id);
       if (!group) {
-        group = this._createPacManGroup(entity);
+        group = this._createGroup(entity);
         this.sprites.set(entity.id, group);
-        this.container.addChild(group);
+        this.container.addChild(group.sprite);
       }
-      this._updatePacManGroup(group, entity);
+      this._updateGroup(group, entity);
     }
   }
 
-  _getColor(entity) {
-    if (entity.activeGift) {
-      const colors = {
-        '#ff69b4': 0xff69b4, '#ffff00': 0xffff00, '#ff00ff': 0xff00ff,
-        '#ffd700': 0xffd700, '#ff4400': 0xff4400,
-      };
-      return colors[entity.activeGift.color] || 0xffffff;
-    }
-    if (!entity.team) return 0xff0000;
-    return entity.team === 'blue' ? 0x4488ff : 0xff69b4;
+  _getTeamColor(entity) {
+    if (!entity.team) return { r: 255, g: 0, b: 0, hex: '#ff0000' };
+    if (entity.team === 'blue') return { r: 68, g: 136, b: 255, hex: '#4488ff' };
+    return { r: 255, g: 77, b: 166, hex: '#ff4da6' };
   }
 
-  _createPacManGroup(entity) {
-    const group = new PIXI.Container();
-    group.entityId = entity.id;
+  _getBoostConfig(entity) {
+    if (!entity.activeGift) return null;
+    const configs = {
+      rose:      { hex: '#ff4da6', thickness: 5,  speed: 0.008, segments: 4, glowSize: 15 },
+      donut:     { hex: '#ffdd00', thickness: 8,  speed: 0.018, segments: 4, glowSize: 20 },
+      confetti:  { hex: '#00cc66', thickness: 11, speed: 0.03,  segments: 4, glowSize: 22 },
+      moneygun:  { hex: '#ff9f1a', thickness: 14, speed: 0.045, segments: 4, glowSize: 25 },
+      firetruck: { hex: '#ff2200', thickness: 18, speed: 0.065, segments: 4, glowSize: 30 },
+    };
+    return configs[entity.activeGift.type] || null;
+  }
 
-    const glow = new PIXI.Graphics();
-    group.addChild(glow);
-    group.glow = glow;
+  _createGroup(entity) {
+    // Offscreen canvas for Canvas 2D rendering
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
+    sprite.anchor.set(0.5);
 
-    const body = new PIXI.Graphics();
-    group.addChild(body);
-    group.body = body;
-
-    const avatarContainer = new PIXI.Container();
-    group.addChild(avatarContainer);
-    group.avatarContainer = avatarContainer;
-
-    if (entity.avatarUrl) {
-      this._loadAvatar(entity.avatarUrl, avatarContainer, entity.size);
-    }
-
-    const eye = new PIXI.Graphics();
-    group.addChild(eye);
-    group.eye = eye;
-
+    // Label
     const label = new PIXI.Text('', {
       fontFamily: 'Arial', fontSize: 11, fill: 0xffffff,
-      align: 'center', strokeThickness: 2, stroke: 0x000000,
+      align: 'center', strokeThickness: 3, stroke: 0x000000, fontWeight: 'bold',
     });
     label.anchor.set(0.5, 1);
-    group.addChild(label);
-    group.label = label;
+    this.container.addChild(label);
 
-    const crown = new PIXI.Text('👑', { fontSize: 16 });
+    // Crown
+    const crown = new PIXI.Text('👑', { fontSize: 18 });
     crown.anchor.set(0.5, 1);
     crown.visible = false;
-    group.addChild(crown);
-    group.crown = crown;
+    this.container.addChild(crown);
 
-    return group;
-  }
-
-  async _loadAvatar(url, container, size) {
-    if (!url) return;
-    try {
-      let texture = this.avatarTextures.get(url);
-      if (!texture) {
-        texture = await PIXI.Assets.load(url);
-        this.avatarTextures.set(url, texture);
-      }
-      const avatar = new PIXI.Sprite(texture);
-      avatar.anchor.set(0.5);
-      avatar.width = size * 0.6;
-      avatar.height = size * 0.6;
-      const mask = new PIXI.Graphics();
-      mask.beginFill(0xffffff);
-      mask.drawCircle(0, 0, size * 0.3);
-      mask.endFill();
-      container.addChild(mask);
-      avatar.mask = mask;
-      container.addChild(avatar);
-      container.avatar = avatar;
-      container.avatarMask = mask;
-    } catch (e) {}
-  }
-
-  _updatePacManGroup(group, entity) {
-    const color = this._getColor(entity);
-    const size = entity.size;
-    const halfSize = size / 2;
-
-    group.x = entity.x;
-    group.y = entity.y;
-
-    group.glow.clear();
-    const glowAlpha = entity.activeGift ? 0.3 : 0.15;
-    group.glow.beginFill(color, glowAlpha);
-    group.glow.drawCircle(0, 0, halfSize + 8);
-    group.glow.endFill();
-
-    const mouthAngle = (entity.mouthAngle || 0) * (Math.PI / 180);
-    const startAngle = entity.angle + mouthAngle;
-    const endAngle = entity.angle + (Math.PI * 2) - mouthAngle;
-
-    group.body.clear();
-    group.body.beginFill(color, 0.3);
-    group.body.lineStyle(2.5, color, 1);
-    group.body.moveTo(0, 0);
-    group.body.arc(0, 0, halfSize, startAngle, endAngle);
-    group.body.closePath();
-    group.body.endFill();
-
-    if (group.avatarContainer.avatar) {
-      group.avatarContainer.avatar.width = size * 0.6;
-      group.avatarContainer.avatar.height = size * 0.6;
-      if (group.avatarContainer.avatarMask) {
-        group.avatarContainer.avatarMask.clear();
-        group.avatarContainer.avatarMask.beginFill(0xffffff);
-        group.avatarContainer.avatarMask.drawCircle(0, 0, size * 0.3);
-        group.avatarContainer.avatarMask.endFill();
-      }
+    // Load avatar image for Canvas 2D
+    if (entity.avatarUrl && !this.avatarImages.has(entity.avatarUrl)) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = entity.avatarUrl;
+      this.avatarImages.set(entity.avatarUrl, img);
     }
 
-    const eyeOffsetX = Math.cos(entity.angle - 0.5) * halfSize * 0.5;
-    const eyeOffsetY = Math.sin(entity.angle - 0.5) * halfSize * 0.5;
-    group.eye.clear();
-    group.eye.beginFill(0xffffff);
-    group.eye.drawCircle(eyeOffsetX, eyeOffsetY - halfSize * 0.2, size * 0.08);
-    group.eye.endFill();
-    group.eye.beginFill(0x000000);
-    group.eye.drawCircle(eyeOffsetX, eyeOffsetY - halfSize * 0.2, size * 0.04);
-    group.eye.endFill();
+    return { canvas, ctx, sprite, label, crown, boostRotation: 0, lastAvatarUrl: entity.avatarUrl };
+  }
 
+  _updateGroup(group, entity) {
+    const teamColor = this._getTeamColor(entity);
+    const boostConfig = this._getBoostConfig(entity);
+    const r = entity.size / 2;
+    const borderW = Math.max(5, r * 0.16);
+
+    // Calculate canvas size needed (pac-man + border + boost + glow margin)
+    const boostExtra = boostConfig ? boostConfig.thickness + boostConfig.glowSize + 10 : 0;
+    const totalR = r + borderW + boostExtra + 30; // 30px margin for glow bleed
+    const canvasSize = Math.ceil(totalR * 2) + 4;
+    const cx = canvasSize / 2; // center x
+    const cy = canvasSize / 2; // center y
+
+    const { canvas, ctx, sprite, label, crown } = group;
+
+    // Resize canvas if needed
+    if (canvas.width !== canvasSize || canvas.height !== canvasSize) {
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
+    }
+
+    ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+    const mouthRad = (entity.mouthAngle || 0) * (Math.PI / 180);
+    const mouthOpen = Math.max(0.02, mouthRad);
+    const dir = entity.angle || 0; // movement direction
+
+    // ── Boost Ring (rotating segmented — exactly like client reference) ──
+    if (boostConfig) {
+      group.boostRotation += boostConfig.speed;
+      const boostR = r + borderW + 6;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(group.boostRotation);
+
+      ctx.lineWidth = boostConfig.thickness;
+      ctx.strokeStyle = boostConfig.hex;
+      ctx.shadowBlur = boostConfig.glowSize;
+      ctx.shadowColor = boostConfig.hex;
+
+      const segCount = boostConfig.segments;
+      for (let i = 0; i < segCount; i++) {
+        const start = i * (Math.PI / 2) + 0.18;
+        const end = start + (Math.PI / 2) - 0.36;
+        ctx.beginPath();
+        ctx.arc(0, 0, boostR, start, end);
+        ctx.stroke();
+      }
+
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
+    // ── Rotate entire pac-man to face movement direction ──
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(dir);
+
+    // ── Team Border (thick glowing ring — exactly like client reference) ──
+    ctx.lineWidth = borderW;
+    ctx.strokeStyle = teamColor.hex;
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = teamColor.hex;
+
+    ctx.beginPath();
+    ctx.arc(0, 0, r, mouthOpen, Math.PI * 2 - mouthOpen);
+    ctx.stroke();
+
+    // Double stroke for stronger glow
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, mouthOpen, Math.PI * 2 - mouthOpen);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    // ── Dark Body (#222 — client reference) ──
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r - borderW * 0.4, mouthOpen, Math.PI * 2 - mouthOpen);
+    ctx.closePath();
+    ctx.fill();
+
+    // ── Avatar (profile pic clipped inside mouth — client reference) ──
+    const avatarImg = entity.avatarUrl ? this.avatarImages.get(entity.avatarUrl) : null;
+    if (avatarImg && avatarImg.complete && avatarImg.naturalWidth > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, r - borderW * 0.8, mouthOpen, Math.PI * 2 - mouthOpen);
+      ctx.closePath();
+      ctx.clip();
+
+      const imgSize = r * 1.8;
+      // Counter-rotate the image so it stays upright
+      ctx.rotate(-dir);
+      ctx.drawImage(avatarImg, -imgSize / 2, -imgSize / 2, imgSize, imgSize);
+      ctx.restore();
+    }
+
+    // ── Inner subtle ring (thin white — client reference detail) ──
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath();
+    ctx.arc(0, 0, r - borderW * 0.7, mouthOpen, Math.PI * 2 - mouthOpen);
+    ctx.stroke();
+
+    ctx.restore(); // end rotation
+
+    // ── Update PixiJS sprite from canvas ──
+    sprite.texture.destroy(true);
+    sprite.texture = PIXI.Texture.from(canvas);
+    sprite.width = canvasSize;
+    sprite.height = canvasSize;
+    sprite.x = entity.x;
+    sprite.y = entity.y;
+
+    // ── Inactive dim ──
+    sprite.alpha = entity.state === 'inactive' ? 0.35 : 1;
+
+    // ── Label ──
+    const labelOffset = r + boostExtra + 14;
     if (!entity.team) {
-      group.label.text = 'Wähle ein Team';
-      group.label.style.fill = 0xff6666;
+      label.text = 'Wähle ein Team';
+      label.style.fill = 0xff6666;
+      label.style.fontSize = 10;
     } else {
-      group.label.text = `${entity.username}\n${entity.points}`;
-      group.label.style.fill = 0xffffff;
+      label.text = `${entity.username}  ${entity.points}`;
+      label.style.fill = 0xffffff;
+      label.style.fontSize = 11;
     }
-    group.label.y = -halfSize - 10;
+    label.x = entity.x;
+    label.y = entity.y - labelOffset;
 
-    group.crown.visible = entity.isKing;
-    group.crown.y = -halfSize - 28;
-
-    group.alpha = entity.state === 'inactive' ? 0.6 : 1;
+    // ── Crown ──
+    crown.visible = entity.isKing;
+    crown.x = entity.x;
+    crown.y = label.y - 16;
   }
 }

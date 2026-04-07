@@ -79,7 +79,7 @@ pac-battle-arena/
 - Neutral players: Red
 - Blue team: Blue (#4488ff)
 - Pink team: Pink (#ff69b4)
-- Gift colors: Pink (Rose), Yellow (Donut), Rainbow (Confetti), Gold (Money Gun), Red-orange fire (Fire Truck)
+- Gift colors: Pink (Rose), Yellow (Donut), Green (Confetti), Orange (Money Gun), Red (Fire Truck)
 
 ---
 
