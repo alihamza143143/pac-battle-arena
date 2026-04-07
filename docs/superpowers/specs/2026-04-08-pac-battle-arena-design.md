@@ -196,11 +196,12 @@ pac-battle-arena/
 - Gift overlap: higher tier always takes priority
 
 ### Gift 1 — Rose (1 coin)
-- **Color:** Pink glow
-- **Effect:** Activates player, enables spin/mouth animation, small speed boost
+- **Color:** Pink glow (subtle)
+- **Effect:** Activates player, enables spin/mouth animation
+- **Speed boost:** Very minimal and very short (~1 second, barely noticeable). Just enough to "wake up" the player. Much weaker than all other gifts.
 - **Combat:** +5 pts per hit on inactive players
 - **Special:** Also serves as Pink team join gift
-- **Duration:** 3 seconds
+- **Duration:** 3 seconds (but speed effect fades after ~1 sec, only activation + combat stays)
 
 ### Gift 2 — Donut (30 coins)
 - **Color:** Yellow
