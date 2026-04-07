@@ -7,11 +7,11 @@ describe('CoinSystem', () => {
     coins = new CoinSystem();
   });
 
-  test('spawnBatch creates 20-30 coins', () => {
+  test('spawnBatch creates 15-20 coins', () => {
     coins.spawnBatch();
     const count = coins.getAll().length;
-    expect(count).toBeGreaterThanOrEqual(20);
-    expect(count).toBeLessThanOrEqual(30);
+    expect(count).toBeGreaterThanOrEqual(15);
+    expect(count).toBeLessThanOrEqual(20);
   });
 
   test('coins have position and value', () => {

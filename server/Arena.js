@@ -60,11 +60,23 @@ class Arena {
   }
 
   spawnInitialAI() {
-    for (let i = 0; i < 5; i++) {
-      this.addEntity(new PacMan({ type: 'ai', team: 'blue', state: 'active' }));
-      this.addEntity(new PacMan({ type: 'ai', team: 'pink', state: 'active' }));
-      this.addEntity(new PacMan({ type: 'ai', team: 'blue', state: 'inactive' }));
-      this.addEntity(new PacMan({ type: 'ai', team: 'pink', state: 'inactive' }));
+    // Spread AI across a 5x4 grid so they cover the whole arena
+    const cols = 5;
+    const rows = 4;
+    const cellW = (1080 - 120) / cols; // arena minus padding
+    const cellH = (1080 - 120) / rows;
+    let idx = 0;
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const team = idx % 2 === 0 ? 'blue' : 'pink';
+        const state = idx < 10 ? 'active' : 'inactive';
+        const pm = new PacMan({ type: 'ai', team, state });
+        // Place in grid cell with small random offset
+        pm.x = 60 + col * cellW + cellW / 2 + (Math.random() - 0.5) * cellW * 0.6;
+        pm.y = 60 + row * cellH + cellH / 2 + (Math.random() - 0.5) * cellH * 0.6;
+        this.addEntity(pm);
+        idx++;
+      }
     }
   }
 

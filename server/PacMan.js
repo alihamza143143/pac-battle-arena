@@ -43,7 +43,7 @@ class PacMan {
     this.isKing = false;
     this.lastActivityTime = Date.now();
     this.hitCooldowns = {};
-    this.dirChangeTimer = 2000 + Math.random() * 3000;
+    this.dirChangeTimer = 800 + Math.random() * 1500;
   }
 
   _calcSize() {
@@ -162,7 +162,7 @@ class PacMan {
 
   getSizeMultiplier() {
     if (!this.activeGift) return 1;
-    if (this.activeGift.type === 'firetruck') return 2.0;
+    if (this.activeGift.type === 'firetruck') return 1.4;
     return 1;
   }
 
@@ -253,7 +253,7 @@ class PacMan {
     this.dirChangeTimer -= dt;
     if (this.dirChangeTimer <= 0) {
       this.angle = Math.random() * Math.PI * 2;
-      this.dirChangeTimer = 2000 + Math.random() * 3000;
+      this.dirChangeTimer = 800 + Math.random() * 1500;
     }
   }
 
