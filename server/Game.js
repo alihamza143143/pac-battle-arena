@@ -129,8 +129,7 @@ class Game {
 
   processEvent(event) {
     switch (event.type) {
-      case 'join':
-      case 'chat': {
+      case 'join': {
         if (!this.arena.getByUsername(event.username)) {
           const pm = new PacMan({
             type: 'player',
@@ -138,6 +137,23 @@ class Game {
             avatarUrl: event.avatarUrl || null,
           });
           this.arena.addEntity(pm);
+        }
+        break;
+      }
+
+      case 'chat': {
+        let pm = this.arena.getByUsername(event.username);
+        if (!pm) {
+          pm = new PacMan({
+            type: 'player',
+            username: event.username,
+            avatarUrl: event.avatarUrl || null,
+          });
+          this.arena.addEntity(pm);
+        }
+        // "GG" in chat joins Boys (blue) team
+        if (event.comment && event.comment.trim().toLowerCase() === 'gg' && !pm.team) {
+          this.teamManager.joinTeamDirect(pm, 'blue');
         }
         break;
       }

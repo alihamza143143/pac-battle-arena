@@ -13,6 +13,12 @@ class TeamManager {
     return true;
   }
 
+  joinTeamDirect(pacman, team) {
+    if (pacman.team) return false;
+    pacman.joinTeam(team);
+    return true;
+  }
+
   getTeamScores() {
     return {
       blue: this.arena.getTeamScore('blue'),

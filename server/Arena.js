@@ -2,11 +2,18 @@ const PacMan = require('./PacMan');
 
 const BOTS_PER_TEAM = 15;
 const ACTIVE_PER_TEAM = 6;
-const INACTIVE_PER_TEAM = 9;
+const AVATAR_COUNT = 15; // 15 images per gender folder
 
 class Arena {
   constructor() {
     this.entities = new Map();
+  }
+
+  _getBotAvatar(team, index) {
+    // pink = women (folder 5), blue = men (folder 4)
+    const folder = team === 'pink' ? 'women' : 'men';
+    const num = (index % AVATAR_COUNT) + 1;
+    return `assets/avatars/${folder}/${num}.jpg`;
   }
 
   addEntity(pacman) {
@@ -62,13 +69,15 @@ class Arena {
   }
 
   spawnInitialAI() {
-    // Spawn 15 pink + 15 blue bots
-    // 6 active + 9 inactive per team
     for (const team of ['pink', 'blue']) {
       for (let i = 0; i < BOTS_PER_TEAM; i++) {
         const state = i < ACTIVE_PER_TEAM ? 'active' : 'inactive';
-        const pm = new PacMan({ type: 'ai', team, state });
-        // Spread across arena with random positions
+        const pm = new PacMan({
+          type: 'ai',
+          team,
+          state,
+          avatarUrl: this._getBotAvatar(team, i),
+        });
         pm.x = 60 + Math.random() * (1080 - 120);
         pm.y = 60 + Math.random() * (1080 - 120);
         this.addEntity(pm);
@@ -77,7 +86,6 @@ class Arena {
   }
 
   respawnAI() {
-    // Maintain exactly 15 pink + 15 blue bots (6 active + 9 inactive each)
     for (const team of ['pink', 'blue']) {
       const teamAI = this.getAIByTeam(team);
       const needed = BOTS_PER_TEAM - teamAI.length;
@@ -86,7 +94,13 @@ class Arena {
       const activeCount = teamAI.filter(p => p.state === 'active').length;
       for (let i = 0; i < needed; i++) {
         const state = (activeCount + i) < ACTIVE_PER_TEAM ? 'active' : 'inactive';
-        this.addEntity(new PacMan({ type: 'ai', team, state }));
+        const avatarIndex = Math.floor(Math.random() * AVATAR_COUNT);
+        this.addEntity(new PacMan({
+          type: 'ai',
+          team,
+          state,
+          avatarUrl: this._getBotAvatar(team, avatarIndex),
+        }));
       }
     }
   }

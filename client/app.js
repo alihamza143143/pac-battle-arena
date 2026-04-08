@@ -101,8 +101,8 @@ function createDebugPanel() {
     <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;">
       <button onclick="dbgSend('join')" style="${btnStyle}background:#555;color:#fff;">Join</button>
       <button onclick="dbgSend('like')" style="${btnStyle}background:#00cc66;color:#fff;">❤️ Like</button>
-      <button onclick="dbgGift('rose')" style="${btnStyle}background:#ff69b4;color:#fff;">🌹 Pink</button>
-      <button onclick="dbgGift('tiktok')" style="${btnStyle}background:#4488ff;color:#fff;">🎵 Blue</button>
+      <button onclick="dbgGift('rose')" style="${btnStyle}background:#ff69b4;color:#fff;">🌹 Girls</button>
+      <button onclick="dbgChat('GG')" style="${btnStyle}background:#4488ff;color:#fff;">GG Boys</button>
     </div>
     <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;">
       <button onclick="dbgGift('rose')" style="${btnStyle}background:#ff69b4;color:#fff;">🌹</button>
@@ -134,6 +134,17 @@ window.dbgSend = function(type) {
   if (type === 'chat') evt.comment = 'Hello!';
   fetch('/debug-event', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(evt) });
   dbgLog(`${type}: ${name}`);
+};
+
+window.dbgChat = function(message) {
+  const name = document.getElementById('dbg-name').value || 'TestPlayer';
+  fetch('/debug-event', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'join', username: name, nickname: name, avatarUrl: '' }) });
+  setTimeout(() => {
+    fetch('/debug-event', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'chat', username: name, nickname: name, avatarUrl: '', comment: message }) });
+    dbgLog(`chat: ${message} (${name})`);
+  }, 100);
 };
 
 window.dbgGift = function(giftType) {
