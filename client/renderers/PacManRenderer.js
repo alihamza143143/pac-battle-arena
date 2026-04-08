@@ -4,8 +4,25 @@ class PacManRenderer {
     this.container = new PIXI.Container();
     this.app.stage.addChild(this.container);
     this.sprites = new Map();
-    this.avatarImages = new Map(); // url -> HTMLImageElement
+    this.avatarImages = new Map();
+    this.giftImages = {};
     this.time = 0;
+    this._loadGiftImages();
+  }
+
+  _loadGiftImages() {
+    const gifts = {
+      rose: 'assets/gift-rose.jpeg',
+      donut: 'assets/gift-donut.jpeg',
+      confetti: 'assets/gift-confetti.jpeg',
+      moneygun: 'assets/gift-moneygun.jpeg',
+      firetruck: 'assets/gift-firetruck.jpeg',
+    };
+    for (const [key, src] of Object.entries(gifts)) {
+      const img = new Image();
+      img.src = src;
+      this.giftImages[key] = img;
+    }
   }
 
   update(gameState) {
@@ -17,6 +34,8 @@ class PacManRenderer {
       if (!currentIds.has(id)) {
         this.container.removeChild(group.sprite);
         group.sprite.destroy(true);
+        if (group.label) this.container.removeChild(group.label);
+        if (group.crown) this.container.removeChild(group.crown);
         this.sprites.delete(id);
       }
     }
@@ -33,31 +52,29 @@ class PacManRenderer {
   }
 
   _getTeamColor(entity) {
-    if (!entity.team) return { r: 255, g: 0, b: 0, hex: '#ff0000' };
-    if (entity.team === 'blue') return { r: 68, g: 136, b: 255, hex: '#4488ff' };
-    return { r: 255, g: 77, b: 166, hex: '#ff4da6' };
+    if (!entity.team) return { hex: '#ff0000', glow: '#ff0000' };
+    if (entity.team === 'blue') return { hex: '#4488ff', glow: '#4488ff' };
+    return { hex: '#ff4da6', glow: '#ff4da6' };
   }
 
   _getBoostConfig(entity) {
     if (!entity.activeGift) return null;
     const configs = {
-      rose:      { hex: '#ff4da6', thickness: 5,  speed: 0.008, segments: 4, glowSize: 15 },
-      donut:     { hex: '#ffdd00', thickness: 8,  speed: 0.018, segments: 4, glowSize: 20 },
-      confetti:  { hex: '#00cc66', thickness: 11, speed: 0.03,  segments: 4, glowSize: 22 },
-      moneygun:  { hex: '#ff9f1a', thickness: 14, speed: 0.045, segments: 4, glowSize: 25 },
-      firetruck: { hex: '#ff2200', thickness: 18, speed: 0.065, segments: 4, glowSize: 30 },
+      rose:      { iconCount: 4, orbitR: 1.6, speed: 0.025, iconSize: 0.4, glowHex: '#ff4da6', glowSize: 15, ringHex: null },
+      donut:     { iconCount: 4, orbitR: 1.7, speed: 0.035, iconSize: 0.45, glowHex: '#ffdd00', glowSize: 20, ringHex: '#ffdd00' },
+      confetti:  { iconCount: 5, orbitR: 1.8, speed: 0.045, iconSize: 0.4, glowHex: '#00cc66', glowSize: 22, ringHex: '#00cc66' },
+      moneygun:  { iconCount: 5, orbitR: 1.9, speed: 0.05,  iconSize: 0.5, glowHex: '#ff9f1a', glowSize: 25, ringHex: '#ff9f1a' },
+      firetruck: { iconCount: 6, orbitR: 2.0, speed: 0.07,  iconSize: 0.55, glowHex: '#ff2200', glowSize: 30, ringHex: '#ff2200' },
     };
     return configs[entity.activeGift.type] || null;
   }
 
   _createGroup(entity) {
-    // Offscreen canvas for Canvas 2D rendering
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const sprite = new PIXI.Sprite(PIXI.Texture.EMPTY);
     sprite.anchor.set(0.5);
 
-    // Label
     const label = new PIXI.Text('', {
       fontFamily: 'Arial', fontSize: 11, fill: 0xffffff,
       align: 'center', strokeThickness: 3, stroke: 0x000000, fontWeight: 'bold',
@@ -65,13 +82,11 @@ class PacManRenderer {
     label.anchor.set(0.5, 1);
     this.container.addChild(label);
 
-    // Crown
     const crown = new PIXI.Text('👑', { fontSize: 18 });
     crown.anchor.set(0.5, 1);
     crown.visible = false;
     this.container.addChild(crown);
 
-    // Load avatar image for Canvas 2D
     if (entity.avatarUrl && !this.avatarImages.has(entity.avatarUrl)) {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -79,7 +94,7 @@ class PacManRenderer {
       this.avatarImages.set(entity.avatarUrl, img);
     }
 
-    return { canvas, ctx, sprite, label, crown, boostRotation: 0, lastAvatarUrl: entity.avatarUrl };
+    return { canvas, ctx, sprite, label, crown, boostRotation: 0 };
   }
 
   _updateGroup(group, entity) {
@@ -88,16 +103,14 @@ class PacManRenderer {
     const r = entity.size / 2;
     const borderW = Math.max(5, r * 0.16);
 
-    // Calculate canvas size needed (pac-man + border + boost + glow margin)
-    const boostExtra = boostConfig ? boostConfig.thickness + boostConfig.glowSize + 10 : 0;
-    const totalR = r + borderW + boostExtra + 30; // 30px margin for glow bleed
+    const iconExtra = boostConfig ? r * boostConfig.orbitR + r * boostConfig.iconSize : 0;
+    const totalR = r + borderW + iconExtra + 20;
     const canvasSize = Math.ceil(totalR * 2) + 4;
-    const cx = canvasSize / 2; // center x
-    const cy = canvasSize / 2; // center y
+    const cx = canvasSize / 2;
+    const cy = canvasSize / 2;
 
     const { canvas, ctx, sprite, label, crown } = group;
 
-    // Resize canvas if needed
     if (canvas.width !== canvasSize || canvas.height !== canvasSize) {
       canvas.width = canvasSize;
       canvas.height = canvasSize;
@@ -107,46 +120,80 @@ class PacManRenderer {
 
     const mouthRad = (entity.mouthAngle || 0) * (Math.PI / 180);
     const mouthOpen = Math.max(0.02, mouthRad);
-    const dir = entity.angle || 0; // movement direction
+    const dir = entity.angle || 0;
 
-    // ── Boost Ring (rotating segmented — exactly like client reference) ──
-    if (boostConfig) {
+    // ── Rotating Gift Icons (replaces old ring) ──
+    if (boostConfig && entity.activeGift) {
       group.boostRotation += boostConfig.speed;
-      const boostR = r + borderW + 6;
+      const giftImg = this.giftImages[entity.activeGift.type];
+      const orbitDist = r * boostConfig.orbitR;
+      const iconPx = r * boostConfig.iconSize;
 
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(group.boostRotation);
-
-      ctx.lineWidth = boostConfig.thickness;
-      ctx.strokeStyle = boostConfig.hex;
-      ctx.shadowBlur = boostConfig.glowSize;
-      ctx.shadowColor = boostConfig.hex;
-
-      const segCount = boostConfig.segments;
-      for (let i = 0; i < segCount; i++) {
-        const start = i * (Math.PI / 2) + 0.18;
-        const end = start + (Math.PI / 2) - 0.36;
+      // Subtle glow ring behind icons
+      if (boostConfig.ringHex) {
+        ctx.save();
+        ctx.strokeStyle = boostConfig.ringHex;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.2;
+        ctx.shadowBlur = boostConfig.glowSize;
+        ctx.shadowColor = boostConfig.ringHex;
         ctx.beginPath();
-        ctx.arc(0, 0, boostR, start, end);
+        ctx.arc(cx, cy, orbitDist, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        ctx.restore();
       }
 
-      ctx.shadowBlur = 0;
-      ctx.restore();
+      // Draw rotating icons
+      if (giftImg && giftImg.complete && giftImg.naturalWidth > 0) {
+        for (let i = 0; i < boostConfig.iconCount; i++) {
+          const angle = group.boostRotation + (i * Math.PI * 2) / boostConfig.iconCount;
+          const ix = cx + Math.cos(angle) * orbitDist;
+          const iy = cy + Math.sin(angle) * orbitDist;
+
+          ctx.save();
+          ctx.translate(ix, iy);
+          // Slight glow behind each icon
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = boostConfig.glowHex;
+          ctx.drawImage(giftImg, -iconPx / 2, -iconPx / 2, iconPx, iconPx);
+          ctx.shadowBlur = 0;
+          ctx.restore();
+        }
+      }
+
+      // Fire Truck: extra fire particles
+      if (entity.activeGift.type === 'firetruck') {
+        for (let i = 0; i < 8; i++) {
+          const pa = group.boostRotation * 2 + i * 0.8;
+          const pd = r * 1.3 + Math.sin(pa * 3) * r * 0.3;
+          const px = cx + Math.cos(pa) * pd;
+          const py = cy + Math.sin(pa) * pd;
+          const pSize = 3 + Math.random() * 4;
+          ctx.save();
+          ctx.globalAlpha = 0.5 + Math.random() * 0.3;
+          ctx.fillStyle = Math.random() > 0.5 ? '#ff4400' : '#ff8800';
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#ff4400';
+          ctx.beginPath();
+          ctx.arc(px, py, pSize, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
     }
 
-    // ── Rotate entire pac-man to face movement direction ──
+    // ── Rotate pac-man body to face movement direction ──
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(dir);
 
-    // ── Team Border (thick glowing ring — exactly like client reference) ──
+    // ── Team Border (thick glowing ring) ──
     ctx.lineWidth = borderW;
     ctx.strokeStyle = teamColor.hex;
     ctx.shadowBlur = 20;
-    ctx.shadowColor = teamColor.hex;
-
+    ctx.shadowColor = teamColor.glow;
     ctx.beginPath();
     ctx.arc(0, 0, r, mouthOpen, Math.PI * 2 - mouthOpen);
     ctx.stroke();
@@ -156,10 +203,9 @@ class PacManRenderer {
     ctx.beginPath();
     ctx.arc(0, 0, r, mouthOpen, Math.PI * 2 - mouthOpen);
     ctx.stroke();
-
     ctx.shadowBlur = 0;
 
-    // ── Dark Body (#222 — client reference) ──
+    // ── Dark Body ──
     ctx.fillStyle = '#222';
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -167,7 +213,7 @@ class PacManRenderer {
     ctx.closePath();
     ctx.fill();
 
-    // ── Avatar (profile pic clipped inside mouth — client reference) ──
+    // ── Avatar (profile pic clipped inside mouth) ──
     const avatarImg = entity.avatarUrl ? this.avatarImages.get(entity.avatarUrl) : null;
     if (avatarImg && avatarImg.complete && avatarImg.naturalWidth > 0) {
       ctx.save();
@@ -176,22 +222,20 @@ class PacManRenderer {
       ctx.arc(0, 0, r - borderW * 0.8, mouthOpen, Math.PI * 2 - mouthOpen);
       ctx.closePath();
       ctx.clip();
-
       const imgSize = r * 1.8;
-      // Counter-rotate the image so it stays upright
-      ctx.rotate(-dir);
+      ctx.rotate(-dir); // counter-rotate so avatar stays upright
       ctx.drawImage(avatarImg, -imgSize / 2, -imgSize / 2, imgSize, imgSize);
       ctx.restore();
     }
 
-    // ── Inner subtle ring (thin white — client reference detail) ──
+    // ── Inner subtle ring ──
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
     ctx.beginPath();
     ctx.arc(0, 0, r - borderW * 0.7, mouthOpen, Math.PI * 2 - mouthOpen);
     ctx.stroke();
 
-    ctx.restore(); // end rotation
+    ctx.restore(); // end pac-man rotation
 
     // ── Update PixiJS sprite from canvas ──
     sprite.texture.destroy(true);
@@ -201,11 +245,18 @@ class PacManRenderer {
     sprite.x = entity.x;
     sprite.y = entity.y;
 
-    // ── Inactive dim ──
-    sprite.alpha = entity.state === 'inactive' ? 0.35 : 1;
+    // ── Inactive dim (also check like-active for mouth) ──
+    const isLiking = entity.lastLikeTime && (Date.now() - entity.lastLikeTime < 2000);
+    if (entity.state === 'inactive' && !isLiking) {
+      sprite.alpha = 0.35;
+    } else if (entity.state === 'inactive' && isLiking) {
+      sprite.alpha = 0.6; // liking but inactive — slightly visible
+    } else {
+      sprite.alpha = 1;
+    }
 
     // ── Label ──
-    const labelOffset = r + boostExtra + 14;
+    const labelOffset = totalR + 4;
     if (!entity.team) {
       label.text = 'Wähle ein Team';
       label.style.fill = 0xff6666;

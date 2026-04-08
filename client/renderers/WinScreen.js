@@ -54,16 +54,36 @@ class WinScreen {
     const trophyColors = [0xffd700, 0xc0c0c0, 0xcd7f32];
     for (let i = 0; i < data.top3.length; i++) {
       const p = data.top3[i];
-      const y = 420 + i * 80;
+      const y = 420 + i * 90;
       const bg = new PIXI.Graphics();
-      bg.beginFill(trophyColors[i], 0.2); bg.drawRoundedRect(290, y - 10, 500, 60, 12); bg.endFill();
-      bg.lineStyle(2, trophyColors[i], 0.5); bg.drawRoundedRect(290, y - 10, 500, 60, 12);
+      bg.beginFill(trophyColors[i], 0.2); bg.drawRoundedRect(250, y - 10, 580, 70, 12); bg.endFill();
+      bg.lineStyle(2, trophyColors[i], 0.5); bg.drawRoundedRect(250, y - 10, 580, 70, 12);
       this.container.addChild(bg);
+
+      // Profile picture (circular)
+      if (p.avatarUrl) {
+        try {
+          const avatarSprite = PIXI.Sprite.from(p.avatarUrl);
+          avatarSprite.anchor.set(0.5);
+          avatarSprite.width = 50; avatarSprite.height = 50;
+          avatarSprite.x = 295; avatarSprite.y = y + 25;
+          const mask = new PIXI.Graphics();
+          mask.beginFill(0xffffff); mask.drawCircle(295, y + 25, 24); mask.endFill();
+          this.container.addChild(mask);
+          avatarSprite.mask = mask;
+          this.container.addChild(avatarSprite);
+          // Border around avatar
+          const ring = new PIXI.Graphics();
+          ring.lineStyle(3, trophyColors[i]); ring.drawCircle(295, y + 25, 26);
+          this.container.addChild(ring);
+        } catch (e) {}
+      }
+
       const text = new PIXI.Text(
         `${trophyEmojis[i]}  ${p.username}  —  ${p.points.toLocaleString('de-DE')} Punkte`,
-        { fontFamily: 'Arial', fontSize: 24, fontWeight: 'bold', fill: trophyColors[i], align: 'center' }
+        { fontFamily: 'Arial', fontSize: 22, fontWeight: 'bold', fill: trophyColors[i], align: 'center' }
       );
-      text.anchor.set(0.5); text.x = 540; text.y = y + 20;
+      text.anchor.set(0.5); text.x = 570; text.y = y + 25;
       this.container.addChild(text);
     }
 
