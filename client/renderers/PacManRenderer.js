@@ -145,36 +145,41 @@ class PacManRenderer {
         ctx.restore();
       }
 
-      // Draw rotating icons
+      // Draw rotating icons (clipped to circles — no square backgrounds)
       if (giftImg && giftImg.complete && giftImg.naturalWidth > 0) {
         for (let i = 0; i < boostConfig.iconCount; i++) {
           const angle = group.boostRotation + (i * Math.PI * 2) / boostConfig.iconCount;
           const ix = cx + Math.cos(angle) * orbitDist;
           const iy = cy + Math.sin(angle) * orbitDist;
+          const iconR = iconPx / 2;
 
           ctx.save();
           ctx.translate(ix, iy);
-          // Slight glow behind each icon
+          // Clip to circle
+          ctx.beginPath();
+          ctx.arc(0, 0, iconR, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          // Glow behind icon
           ctx.shadowBlur = 8;
           ctx.shadowColor = boostConfig.glowHex;
-          ctx.drawImage(giftImg, -iconPx / 2, -iconPx / 2, iconPx, iconPx);
-          ctx.shadowBlur = 0;
+          ctx.drawImage(giftImg, -iconR, -iconR, iconPx, iconPx);
           ctx.restore();
         }
       }
 
-      // Fire Truck: extra fire particles
+      // Fire Truck: fire particles (reduced count for performance)
       if (entity.activeGift.type === 'firetruck') {
-        for (let i = 0; i < 8; i++) {
-          const pa = group.boostRotation * 2 + i * 0.8;
-          const pd = r * 1.3 + Math.sin(pa * 3) * r * 0.3;
+        for (let i = 0; i < 4; i++) {
+          const pa = group.boostRotation * 2 + i * 1.6;
+          const pd = r * 1.2 + Math.sin(pa * 3) * r * 0.2;
           const px = cx + Math.cos(pa) * pd;
           const py = cy + Math.sin(pa) * pd;
-          const pSize = 3 + Math.random() * 4;
+          const pSize = 2 + Math.random() * 3;
           ctx.save();
-          ctx.globalAlpha = 0.5 + Math.random() * 0.3;
+          ctx.globalAlpha = 0.4 + Math.random() * 0.3;
           ctx.fillStyle = Math.random() > 0.5 ? '#ff4400' : '#ff8800';
-          ctx.shadowBlur = 10;
+          ctx.shadowBlur = 6;
           ctx.shadowColor = '#ff4400';
           ctx.beginPath();
           ctx.arc(px, py, pSize, 0, Math.PI * 2);

@@ -55,38 +55,39 @@ class EffectRenderer {
   _showCoinFlyEffect(evt, entities) {
     const user = entities.find(e => e.id === evt.userId);
     if (!user) return;
+    // Only spawn 1 coin per entity (not 3) to reduce particle spam
     for (const entity of entities) {
       if (entity.id === evt.userId) continue;
-      for (let i = 0; i < 3; i++) {
-        const coin = new PIXI.Graphics();
-        coin.beginFill(0xffd700); coin.drawCircle(0, 0, 4); coin.endFill();
-        coin.x = entity.x; coin.y = entity.y;
-        coin.targetX = user.x; coin.targetY = user.y;
-        coin.progress = 0; coin.speed = 0.02 + Math.random() * 0.02;
-        coin.delay = i * 5; coin.type = 'coinfly';
-        this.container.addChild(coin);
-        this.particles.push(coin);
-      }
+      const coin = new PIXI.Graphics();
+      coin.beginFill(0xffd700); coin.drawCircle(0, 0, 4); coin.endFill();
+      coin.x = entity.x; coin.y = entity.y;
+      coin.targetX = user.x; coin.targetY = user.y;
+      coin.progress = 0; coin.speed = 0.03 + Math.random() * 0.02;
+      coin.delay = Math.floor(Math.random() * 10); coin.type = 'coinfly';
+      this.container.addChild(coin);
+      this.particles.push(coin);
     }
   }
 
   _showExplosionEffect(evt, entities) {
     const user = entities.find(e => e.id === evt.userId);
     if (!user) return;
-    for (let i = 0; i < 30; i++) {
+    // Reduced from 30 to 15 particles
+    for (let i = 0; i < 15; i++) {
       const p = new PIXI.Graphics();
       const color = Math.random() > 0.5 ? 0xff4400 : 0xffa500;
-      p.beginFill(color); p.drawCircle(0, 0, 3 + Math.random() * 4); p.endFill();
+      p.beginFill(color); p.drawCircle(0, 0, 3 + Math.random() * 3); p.endFill();
       p.x = user.x; p.y = user.y;
-      p.vx = (Math.random() - 0.5) * 12; p.vy = (Math.random() - 0.5) * 12;
-      p.life = 30 + Math.random() * 20; p.type = 'explosion';
+      p.vx = (Math.random() - 0.5) * 10; p.vy = (Math.random() - 0.5) * 10;
+      p.life = 25 + Math.random() * 15; p.type = 'explosion';
       this.container.addChild(p);
       this.particles.push(p);
     }
   }
 
   _addFireParticles(x, y, size) {
-    if (Math.random() > 0.3) return;
+    if (this.particles.length > 150) return; // hard cap on particles
+    if (Math.random() > 0.15) return; // much more throttled (was 0.3)
     const p = new PIXI.Graphics();
     const color = Math.random() > 0.5 ? 0xff4400 : 0xff6600;
     p.beginFill(color, 0.7); p.drawCircle(0, 0, 2 + Math.random() * 3); p.endFill();
