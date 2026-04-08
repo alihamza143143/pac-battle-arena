@@ -22,7 +22,54 @@ resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
 
 const soundManager = new SoundManager();
+window.soundManager = soundManager;
 window.gameState = null;
+
+// ── Click-to-Start Overlay (required for audio) ──
+function createStartOverlay() {
+  const overlay = document.createElement('div');
+  overlay.id = 'start-overlay';
+  overlay.style.cssText = `
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;
+    z-index:99999;cursor:pointer;
+  `;
+  overlay.innerHTML = `
+    <div style="text-align:center;color:#fff;font-family:Arial;">
+      <div style="font-size:60px;margin-bottom:20px;">🎮</div>
+      <div style="font-size:24px;font-weight:bold;color:#ffd700;">PAC BATTLE ARENA</div>
+      <div style="font-size:16px;margin-top:12px;color:#aaa;">Click to Start / Klicke zum Starten</div>
+    </div>
+  `;
+  overlay.addEventListener('click', () => {
+    overlay.remove();
+    soundManager._userGestured = true;
+    soundManager._getCtx();
+  }, { once: true });
+  document.body.appendChild(overlay);
+}
+createStartOverlay();
+
+// ── Sound Toggle Button ──
+function createSoundToggle() {
+  const btn = document.createElement('button');
+  btn.id = 'sound-toggle';
+  btn.textContent = '🔊';
+  btn.style.cssText = `
+    position:fixed;top:10px;right:10px;width:40px;height:40px;
+    background:rgba(0,0,0,0.6);border:2px solid #4488ff;border-radius:8px;
+    font-size:20px;cursor:pointer;z-index:9999;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+  `;
+  btn.onclick = () => {
+    soundManager.enabled = !soundManager.enabled;
+    btn.textContent = soundManager.enabled ? '🔊' : '🔇';
+    btn.style.borderColor = soundManager.enabled ? '#4488ff' : '#ff4444';
+    if (!soundManager.enabled) soundManager.stopAllLoops();
+  };
+  document.body.appendChild(btn);
+}
+createSoundToggle();
 let gameState = null;
 let roundEndState = null;
 let arenaRenderer = null;
@@ -161,6 +208,9 @@ async function init() {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(`${protocol}//${window.location.host}`);
 
+  let lastCoinSound = 0;
+  let soundPlayingForEntity = null;
+
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
     if (data.type === 'gameState') {
@@ -170,16 +220,47 @@ async function init() {
         winScreen.hide();
         showingWinScreen = false;
       }
-      if (data.events) {
+
+      // Stop gift sound when the boosted entity's gift expires
+      if (soundPlayingForEntity) {
+        const entity = data.entities.find(e => e.id === soundPlayingForEntity);
+        if (!entity || !entity.activeGift) {
+          soundManager.stopGiftSound();
+          soundPlayingForEntity = null;
+        }
+      }
+
+      // Events are only sent once from server — no dedup needed
+      if (data.events && data.events.length > 0) {
+        const now = Date.now();
         for (const evt of data.events) {
-          if (evt.type === 'coinCollect') soundManager.coinCollect();
-          if (evt.type === 'moneygun') { soundManager.giftMoneyGun(); soundManager.freeze(); }
-          if (evt.type === 'firetruck') soundManager.giftFireTruck();
+          if (evt.type === 'coinCollect') {
+            if (now - lastCoinSound > 150) { soundManager.coinCollect(); lastCoinSound = now; }
+          }
+          if (evt.type === 'gift') {
+            soundManager.stopGiftSound();
+            if (evt.giftType === 'rose') soundManager.giftRose();
+            else if (evt.giftType === 'donut') soundManager.giftDonut();
+            else if (evt.giftType === 'confetti') soundManager.giftConfetti();
+            soundPlayingForEntity = evt.userId;
+          }
+          if (evt.type === 'moneygun') {
+            soundManager.stopGiftSound();
+            soundManager.giftMoneyGun();
+            soundManager.freeze();
+            soundPlayingForEntity = evt.userId;
+          }
+          if (evt.type === 'firetruck') {
+            soundManager.stopGiftSound();
+            soundManager.giftFireTruck();
+            soundPlayingForEntity = evt.userId;
+          }
         }
       }
     } else if (data.type === 'roundEnd') {
       roundEndState = data;
       if (!showingWinScreen) {
+        soundManager.stopGiftSound();
         winScreen.show(data);
         showingWinScreen = true;
         soundManager.roundEnd();

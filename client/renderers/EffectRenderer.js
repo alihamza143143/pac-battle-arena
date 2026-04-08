@@ -37,14 +37,14 @@ class EffectRenderer {
     this.freezeOverlay.beginFill(0x88ccff, 0.15);
     this.freezeOverlay.drawRect(0, 0, 1080, 1080);
     this.freezeOverlay.endFill();
-    this.freezeOverlay.life = 90;
+    this.freezeOverlay.life = 120;
     this.container.addChild(this.freezeOverlay);
   }
 
   _updateFreezeOverlay() {
     if (!this.freezeOverlay) return;
     this.freezeOverlay.life--;
-    this.freezeOverlay.alpha = this.freezeOverlay.life / 90;
+    this.freezeOverlay.alpha = this.freezeOverlay.life / 120;
     if (this.freezeOverlay.life <= 0) {
       this.container.removeChild(this.freezeOverlay);
       this.freezeOverlay.destroy();

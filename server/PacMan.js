@@ -39,6 +39,7 @@ class PacMan {
     this.lastLikeTime = 0; // timestamp of last like
     this.isKing = false;
     this.lastActivityTime = Date.now();
+    this.likeActiveUntil = 0;
     this.hitCooldowns = {};
     this.dirChangeTimer = 800 + Math.random() * 1500;
   }
@@ -60,8 +61,15 @@ class PacMan {
   activateByLike() {
     if (this.team) {
       this.lastLikeTime = Date.now();
-      // Likes only give mouth animation, not full activation
-      // State stays whatever it is — likes don't make you 'active'
+      this.lastActivityTime = Date.now();
+      // Like activates for 0.5s with mouth animation, can collect coins
+      if (this.state !== 'active') {
+        this.state = 'active';
+      }
+      // Set a like-boost that expires in 0.5s
+      if (!this.activeGift) {
+        this.likeActiveUntil = Date.now() + 500;
+      }
     }
   }
 
@@ -88,13 +96,21 @@ class PacMan {
   }
 
   canCollectCoins() {
-    // Only active players who have been activated by a gift (Rose or higher) can collect coins
-    // Like-only players cannot collect coins
-    return this.state === 'active' && this.activatedByGift;
+    // All active players can collect coins (including like-activated)
+    return this.state === 'active';
   }
 
   checkInactivity(now) {
     if (this.type === 'ai') return;
+    // Like-only activation expires after 0.5s
+    if (this.state === 'active' && this.team && !this.activeGift && this.likeActiveUntil > 0) {
+      if (now > this.likeActiveUntil) {
+        this.state = 'inactive';
+        this.mouthAngle = 0;
+        this.mouthSpeed = 0;
+        this.likeActiveUntil = 0;
+      }
+    }
     if (this.state === 'active' && this.team) {
       if (now - this.lastActivityTime > INACTIVE_TIMEOUT) {
         this.state = 'inactive';
@@ -133,15 +149,12 @@ class PacMan {
   getSpeedMultiplier() {
     if (!this.activeGift) return 1;
     const multipliers = {
-      rose: 1.1,
+      rose: 1.2,
       donut: 1.5,
-      confetti: 1.8,
-      moneygun: 1.5,
-      firetruck: 2.5,
+      confetti: 2.0,
+      moneygun: 2.5,
+      firetruck: 3.0,
     };
-    if (this.activeGift.type === 'rose' && this.activeGift.remainingMs < 2000) {
-      return 1;
-    }
     return multipliers[this.activeGift.type] || 1;
   }
 
@@ -164,36 +177,38 @@ class PacMan {
   }
 
   getDamagePerHit() {
-    // Like-only players deal only 2 damage
-    if (!this.activeGift && !this.activatedByGift) return 2;
-    if (!this.activeGift) return 5;
+    // Like-only players deal 10 damage per contact
+    if (!this.activeGift) return 10;
     const damage = {
-      rose: 5,
-      donut: 10,
-      confetti: 20,
-      moneygun: 0,
-      firetruck: 100,
+      rose: 20,
+      donut: 40,
+      confetti: 80,
+      moneygun: 100,
+      firetruck: 150,
     };
-    return damage[this.activeGift.type] || 5;
+    return damage[this.activeGift.type] || 10;
   }
 
   canHitTarget(target) {
     if (!this.canAttack()) return false;
     // Same team protection — teammates can't damage each other
-    // Exception: Fire Truck hits everyone
+    // Exception: Money Gun & Fire Truck hit everyone (no protection)
     if (this.team && target.team && this.team === target.team) {
-      if (!this.activeGift || this.activeGift.type !== 'firetruck') {
+      if (!this.activeGift || (this.activeGift.type !== 'firetruck' && this.activeGift.type !== 'moneygun')) {
         return false;
       }
     }
+    // Money Gun & Fire Truck: can hit ALL players (no protection applies)
+    if (this.activeGift && (this.activeGift.type === 'firetruck' || this.activeGift.type === 'moneygun')) {
+      return target.id !== this.id;
+    }
+    // Like, Rose, Confetti: only hit unprotected/inactive players
     if (!this.activeGift || this.activeGift.type === 'rose' || this.activeGift.type === 'confetti') {
       return target.canBeAttacked();
     }
+    // Donut: can hit players without active gift
     if (this.activeGift.type === 'donut') {
       return !target.activeGift;
-    }
-    if (this.activeGift.type === 'firetruck') {
-      return target.id !== this.id;
     }
     return target.canBeAttacked();
   }
@@ -226,7 +241,7 @@ class PacMan {
     if (this.y < halfSize) { this.y = halfSize; this.angle = -this.angle; }
     if (this.y > ARENA_SIZE - halfSize) { this.y = ARENA_SIZE - halfSize; this.angle = -this.angle; }
 
-    const isLiking = this.lastLikeTime && (Date.now() - this.lastLikeTime < 2000);
+    const isLiking = this.lastLikeTime && (Date.now() - this.lastLikeTime < 500);
     if (this.state === 'active' || isLiking) {
       const mouthMult = this.getMouthSpeedMultiplier();
       if (this.mouthOpening) {

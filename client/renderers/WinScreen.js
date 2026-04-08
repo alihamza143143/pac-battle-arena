@@ -36,7 +36,7 @@ class WinScreen {
     this.container.addChild(title);
 
     const winColor = data.winningTeam === 'blue' ? 0x4488ff : 0xff69b4;
-    const winName = data.winningTeam === 'blue' ? 'TEAM BLUE' : 'TEAM PINK';
+    const winName = data.winningTeam === 'blue' ? 'BOYS' : 'GIRLS';
     const winText = new PIXI.Text(`🏆 ${winName} GEWINNT! 🏆`, {
       fontFamily: 'Arial', fontSize: 36, fontWeight: 'bold', fill: winColor, align: 'center',
     });
@@ -44,7 +44,7 @@ class WinScreen {
     this.container.addChild(winText);
 
     const scoreText = new PIXI.Text(
-      `PINK: ${data.teamScores.pink.toLocaleString('de-DE')}  |  BLUE: ${data.teamScores.blue.toLocaleString('de-DE')}`,
+      `Girls: ${data.teamScores.pink.toLocaleString('de-DE')}  |  Boys: ${data.teamScores.blue.toLocaleString('de-DE')}`,
       { fontFamily: 'Arial', fontSize: 22, fill: 0xffffff, align: 'center' }
     );
     scoreText.anchor.set(0.5); scoreText.x = 540; scoreText.y = 320;

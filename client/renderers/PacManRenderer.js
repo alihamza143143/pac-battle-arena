@@ -60,11 +60,11 @@ class PacManRenderer {
   _getBoostConfig(entity) {
     if (!entity.activeGift) return null;
     const configs = {
-      rose:      { iconCount: 4, orbitR: 1.6, speed: 0.025, iconSize: 0.4, glowHex: '#ff4da6', glowSize: 15, ringHex: null },
-      donut:     { iconCount: 4, orbitR: 1.7, speed: 0.035, iconSize: 0.45, glowHex: '#ffdd00', glowSize: 20, ringHex: '#ffdd00' },
-      confetti:  { iconCount: 5, orbitR: 1.8, speed: 0.045, iconSize: 0.4, glowHex: '#00cc66', glowSize: 22, ringHex: '#00cc66' },
-      moneygun:  { iconCount: 5, orbitR: 1.9, speed: 0.05,  iconSize: 0.5, glowHex: '#ff9f1a', glowSize: 25, ringHex: '#ff9f1a' },
-      firetruck: { iconCount: 6, orbitR: 2.0, speed: 0.07,  iconSize: 0.55, glowHex: '#ff2200', glowSize: 30, ringHex: '#ff2200' },
+      rose:      { iconCount: 4, orbitR: 1.6, speed: 0.025, iconSize: 0.4, glowHex: '#ff0000', glowSize: 25, ringHex: '#ff0000', ringWidth: 4 },
+      donut:     { iconCount: 4, orbitR: 1.7, speed: 0.035, iconSize: 0.45, glowHex: '#ffdd00', glowSize: 28, ringHex: '#ffdd00', ringWidth: 4 },
+      confetti:  { iconCount: 5, orbitR: 1.8, speed: 0.045, iconSize: 0.4, glowHex: '#00ff88', glowSize: 30, ringHex: '#00ff88', ringWidth: 5 },
+      moneygun:  { iconCount: 5, orbitR: 1.9, speed: 0.05,  iconSize: 0.5, glowHex: '#ffd700', glowSize: 35, ringHex: '#ffd700', ringWidth: 5 },
+      firetruck: { iconCount: 6, orbitR: 2.0, speed: 0.07,  iconSize: 0.55, glowHex: '#ff2200', glowSize: 40, ringHex: '#ff2200', ringWidth: 6 },
     };
     return configs[entity.activeGift.type] || null;
   }
@@ -129,14 +129,20 @@ class PacManRenderer {
       const orbitDist = r * boostConfig.orbitR;
       const iconPx = r * boostConfig.iconSize;
 
-      // Subtle glow ring behind icons
+      // Strong visible glow ring behind icons
       if (boostConfig.ringHex) {
         ctx.save();
         ctx.strokeStyle = boostConfig.ringHex;
-        ctx.lineWidth = 3;
-        ctx.globalAlpha = 0.2;
+        ctx.lineWidth = boostConfig.ringWidth || 4;
+        ctx.globalAlpha = 0.6;
         ctx.shadowBlur = boostConfig.glowSize;
         ctx.shadowColor = boostConfig.ringHex;
+        ctx.beginPath();
+        ctx.arc(cx, cy, orbitDist, 0, Math.PI * 2);
+        ctx.stroke();
+        // Double stroke for extra brightness
+        ctx.globalAlpha = 0.3;
+        ctx.shadowBlur = boostConfig.glowSize * 1.5;
         ctx.beginPath();
         ctx.arc(cx, cy, orbitDist, 0, Math.PI * 2);
         ctx.stroke();
@@ -251,7 +257,7 @@ class PacManRenderer {
     sprite.y = entity.y;
 
     // ── Inactive dim (also check like-active for mouth) ──
-    const isLiking = entity.lastLikeTime && (Date.now() - entity.lastLikeTime < 2000);
+    const isLiking = entity.lastLikeTime && (Date.now() - entity.lastLikeTime < 500);
     if (entity.state === 'inactive' && !isLiking) {
       sprite.alpha = 0.35;
     } else if (entity.state === 'inactive' && isLiking) {

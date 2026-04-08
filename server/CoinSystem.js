@@ -2,27 +2,18 @@ const crypto = require('crypto');
 
 const ARENA_SIZE = 1080;
 const ARENA_PADDING = 60;
-const BATCH_MIN = 15;
-const BATCH_MAX = 20;
-const MAX_COINS = 35; // never exceed this on map
-const RESPAWN_INTERVAL = 30000;
+const TOTAL_COINS = 100;
 const COIN_COLLECT_RADIUS = 20;
 const BIG_COIN_CHANCE = 0.15;
 
 class CoinSystem {
   constructor() {
     this.coins = new Map();
-    this.respawnTimer = RESPAWN_INTERVAL;
   }
 
-  spawnBatch() {
-    // Don't exceed max coins on map
-    const currentCount = this.coins.size;
-    if (currentCount >= MAX_COINS) return;
-    const spaceLeft = MAX_COINS - currentCount;
-    const batchSize = BATCH_MIN + Math.floor(Math.random() * (BATCH_MAX - BATCH_MIN + 1));
-    const count = Math.min(batchSize, spaceLeft);
-    for (let i = 0; i < count; i++) {
+  spawnAll() {
+    this.coins.clear();
+    for (let i = 0; i < TOTAL_COINS; i++) {
       const isBig = Math.random() < BIG_COIN_CHANCE;
       const coin = {
         id: crypto.randomUUID(),
@@ -65,17 +56,15 @@ class CoinSystem {
   }
 
   update(dt) {
-    this.respawnTimer -= dt;
-    if (this.respawnTimer <= 0) {
-      this.spawnBatch();
-      this.respawnTimer = RESPAWN_INTERVAL;
+    // When all coins are collected, spawn 100 new ones
+    if (this.coins.size === 0) {
+      this.spawnAll();
     }
   }
 
   reset() {
     this.coins.clear();
-    this.respawnTimer = RESPAWN_INTERVAL;
-    this.spawnBatch();
+    this.spawnAll();
   }
 
   toJSON() {

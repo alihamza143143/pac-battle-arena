@@ -25,7 +25,7 @@ class Game {
 
   start() {
     this.arena.spawnInitialAI();
-    this.coinSystem.spawnBatch();
+    this.coinSystem.spawnAll();
     this.running = true;
   }
 
@@ -120,9 +120,11 @@ class Game {
     this.arena.respawnAI();
 
     this._updateKing();
-    this.visualEvents = this.visualEvents.slice(-20);
 
-    return this._buildState();
+    const state = this._buildState();
+    // Clear events after building state — each event is only sent once
+    this.visualEvents = [];
+    return state;
   }
 
   processEvent(event) {
@@ -176,18 +178,26 @@ class Game {
         if (pm.team) {
           if (giftType === 'moneygun') {
             const result = GiftSystem.applyMoneyGun(pm, this.arena);
-            this.frozenUntil = Date.now() + 3000;
+            this.frozenUntil = Date.now() + 4000;
             this.visualEvents.push({
               type: 'moneygun',
               userId: pm.id,
               frozen: result.frozen,
               totalStolen: result.totalStolen,
             });
+          } else if (giftType === 'firetruck') {
+            const result = GiftSystem.applyFireTruck(pm, this.arena);
+            this.visualEvents.push({
+              type: 'firetruck',
+              userId: pm.id,
+              totalStolen: result.totalStolen,
+            });
           } else if (giftType !== 'tiktok') {
-            GiftSystem.applyGift(pm, giftType);
-            if (giftType === 'firetruck') {
+            const applied = GiftSystem.applyGift(pm, giftType);
+            if (applied) {
               this.visualEvents.push({
-                type: 'firetruck',
+                type: 'gift',
+                giftType: giftType,
                 userId: pm.id,
               });
             }
