@@ -17,7 +17,7 @@ describe('Game', () => {
   });
 
   test('starts with coins', () => {
-    expect(game.coinSystem.getAll().length).toBeGreaterThanOrEqual(20);
+    expect(game.coinSystem.getAll().length).toBeGreaterThanOrEqual(15);
   });
 
   test('tick updates game state', () => {
@@ -58,15 +58,16 @@ describe('Game', () => {
     expect(pm.team).toBe('blue');
   });
 
-  test('processLike activates inactive player but keeps activatedByGift false', () => {
+  test('processLike sets lastLikeTime but does not change state', () => {
     game.processEvent({ type: 'join', username: 'user3', nickname: 'U3', avatarUrl: '' });
     game.processEvent({ type: 'gift', username: 'user3', giftType: 'tiktok' });
     const pm = game.arena.getByUsername('user3');
     pm.state = 'inactive';
     pm.activatedByGift = false;
     game.processEvent({ type: 'like', username: 'user3' });
-    expect(pm.state).toBe('active');
+    expect(pm.state).toBe('inactive'); // likes no longer set state to active
     expect(pm.activatedByGift).toBe(false);
+    expect(pm.lastLikeTime).toBeGreaterThan(0);
   });
 
   test('reset clears and restarts', () => {

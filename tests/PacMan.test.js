@@ -9,7 +9,7 @@ describe('PacMan', () => {
     expect(pm.points).toBe(500);
     expect(pm.x).toBeGreaterThanOrEqual(0);
     expect(pm.y).toBeGreaterThanOrEqual(0);
-    expect(pm.username).toMatch(/^Bot-/);
+    expect(pm.username).toMatch(/^Player-/);
   });
 
   test('creates player pacman as neutral', () => {
@@ -41,14 +41,15 @@ describe('PacMan', () => {
     expect(pm.state).toBe('active');
   });
 
-  test('activateByLike does not set activatedByGift', () => {
+  test('activateByLike sets lastLikeTime but does not change state', () => {
     const pm = new PacMan({ type: 'player', username: 'test' });
     pm.joinTeam('blue');
     pm.state = 'inactive';
     pm.activatedByGift = false;
     pm.activateByLike();
-    expect(pm.state).toBe('active');
+    expect(pm.state).toBe('inactive'); // likes no longer set state to active
     expect(pm.activatedByGift).toBe(false);
+    expect(pm.lastLikeTime).toBeGreaterThan(0);
   });
 
   test('like-only player deals 2 damage', () => {

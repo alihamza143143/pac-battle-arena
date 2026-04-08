@@ -1,7 +1,7 @@
 const BASE_SIZE = 25;
 const MAX_SIZE = 90; // practical visual cap
 const GROWTH_RATE = 0.0008; // diminishing returns curve
-const BASE_SPEED = 0.5;
+const BASE_SPEED = 0.9;
 const SPEED_FACTOR = 0.015;
 const BASE_MOUTH_SPEED = 0.8;
 const MOUTH_SPEED_FACTOR = 0.015;

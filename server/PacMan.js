@@ -15,7 +15,7 @@ class PacMan {
     this.id = crypto.randomUUID();
     this.type = type;
     this.team = type === 'player' ? null : team;
-    this.username = username || `Bot-${this.id.slice(0, 4)}`;
+    this.username = username || `Player-${this.id.slice(0, 4)}`;
     this.avatarUrl = avatarUrl || null;
 
     if (state) {
@@ -40,6 +40,7 @@ class PacMan {
 
     this.activeGift = null;
     this.activatedByGift = false; // true if player used Rose or higher gift (not just likes)
+    this.lastLikeTime = 0; // timestamp of last like
     this.isKing = false;
     this.lastActivityTime = Date.now();
     this.hitCooldowns = {};
@@ -77,9 +78,9 @@ class PacMan {
 
   activateByLike() {
     if (this.team) {
-      this.state = 'active';
-      this.lastActivityTime = Date.now();
-      // activatedByGift stays whatever it was — likes don't upgrade to gift status
+      this.lastLikeTime = Date.now();
+      // Likes only give mouth animation, not full activation
+      // State stays whatever it is — likes don't make you 'active'
     }
   }
 
@@ -142,6 +143,12 @@ class PacMan {
     this.activeGift.remainingMs -= dt;
     if (this.activeGift.remainingMs <= 0) {
       this.activeGift = null;
+      // CRITICAL: player becomes inactive immediately when gift ends
+      if (this.type === 'player') {
+        this.state = 'inactive';
+        this.mouthAngle = 0;
+        this.mouthSpeed = 0;
+      }
     }
   }
 
@@ -194,6 +201,13 @@ class PacMan {
 
   canHitTarget(target) {
     if (!this.canAttack()) return false;
+    // Same team protection — teammates can't damage each other
+    // Exception: Fire Truck hits everyone
+    if (this.team && target.team && this.team === target.team) {
+      if (!this.activeGift || this.activeGift.type !== 'firetruck') {
+        return false;
+      }
+    }
     if (!this.activeGift || this.activeGift.type === 'rose' || this.activeGift.type === 'confetti') {
       return target.canBeAttacked();
     }
@@ -234,7 +248,8 @@ class PacMan {
     if (this.y < halfSize) { this.y = halfSize; this.angle = -this.angle; }
     if (this.y > ARENA_SIZE - halfSize) { this.y = ARENA_SIZE - halfSize; this.angle = -this.angle; }
 
-    if (this.state === 'active') {
+    const isLiking = this.lastLikeTime && (Date.now() - this.lastLikeTime < 2000);
+    if (this.state === 'active' || isLiking) {
       const mouthMult = this.getMouthSpeedMultiplier();
       if (this.mouthOpening) {
         this.mouthAngle += this.mouthSpeed * mouthMult * (dt / 16);
@@ -284,6 +299,7 @@ class PacMan {
       activeGift: this.activeGift ? { type: this.activeGift.type, color: this.activeGift.color, remainingMs: this.activeGift.remainingMs } : null,
       isKing: this.isKing,
       activatedByGift: this.activatedByGift,
+      lastLikeTime: this.lastLikeTime,
     };
   }
 }
