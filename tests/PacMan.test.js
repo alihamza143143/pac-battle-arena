@@ -9,7 +9,7 @@ describe('PacMan', () => {
     expect(pm.points).toBe(500);
     expect(pm.x).toBeGreaterThanOrEqual(0);
     expect(pm.y).toBeGreaterThanOrEqual(0);
-    expect(pm.username).toMatch(/^Player-/);
+    expect(pm.username).toBe('Player');
   });
 
   test('creates player pacman as neutral', () => {

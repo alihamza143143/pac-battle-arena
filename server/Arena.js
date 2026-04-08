@@ -83,9 +83,15 @@ class Arena {
   respawnAI() {
     const currentAI = this.getAICount();
     const needed = TARGET_AI_COUNT - currentAI;
+    if (needed <= 0) return;
+    // Check current active/inactive balance and fill gaps
+    const ai = this.getAll().filter(p => p.type === 'ai');
+    const activeCount = ai.filter(p => p.state === 'active').length;
+    const inactiveCount = ai.filter(p => p.state === 'inactive').length;
     for (let i = 0; i < needed; i++) {
       const team = i % 2 === 0 ? 'blue' : 'pink';
-      const state = i % 4 < 2 ? 'active' : 'inactive';
+      // Maintain 10/10 split: fill whichever side is short
+      const state = (activeCount + i) < 10 ? 'active' : 'inactive';
       this.addEntity(new PacMan({ type: 'ai', team, state }));
     }
   }

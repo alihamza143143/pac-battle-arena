@@ -2,12 +2,8 @@ const crypto = require('crypto');
 
 const ARENA_SIZE = 1080;
 const ARENA_PADDING = 60;
-const BASE_SIZE = 25;
-const SIZE_PER_POINT = 1 / 25;
-const BASE_SPEED = 0.5;
-const SPEED_FACTOR = 0.02;
-const BASE_MOUTH_SPEED = 0.05;
-const MOUTH_SPEED_FACTOR = 0.001;
+// NOTE: size/speed/mouthSpeed are recalculated every tick by GrowthSystem.
+// These are only used for initial values before the first tick.
 const INACTIVE_TIMEOUT = 15000;
 
 class PacMan {
@@ -15,7 +11,7 @@ class PacMan {
     this.id = crypto.randomUUID();
     this.type = type;
     this.team = type === 'player' ? null : team;
-    this.username = username || `Player-${this.id.slice(0, 4)}`;
+    this.username = username || 'Player';
     this.avatarUrl = avatarUrl || null;
 
     if (state) {
@@ -31,12 +27,12 @@ class PacMan {
     this.angle = Math.random() * Math.PI * 2;
 
     this.points = 500;
-    this.size = this._calcSize();
-    this.speed = this._calcSpeed();
+    this.size = 45;  // will be overwritten by GrowthSystem on first tick
+    this.speed = 1.5; // will be overwritten by GrowthSystem on first tick
 
     this.mouthAngle = 0;
     this.mouthOpening = true;
-    this.mouthSpeed = this._calcMouthSpeed();
+    this.mouthSpeed = 0; // will be overwritten by GrowthSystem on first tick
 
     this.activeGift = null;
     this.activatedByGift = false; // true if player used Rose or higher gift (not just likes)
@@ -45,21 +41,6 @@ class PacMan {
     this.lastActivityTime = Date.now();
     this.hitCooldowns = {};
     this.dirChangeTimer = 800 + Math.random() * 1500;
-  }
-
-  _calcSize() {
-    return BASE_SIZE + this.points * SIZE_PER_POINT;
-  }
-
-  _calcSpeed() {
-    const size = this._calcSize();
-    return BASE_SPEED + size * SPEED_FACTOR;
-  }
-
-  _calcMouthSpeed() {
-    if (this.state === 'inactive' || this.state === 'neutral') return 0;
-    const size = this._calcSize();
-    return BASE_MOUTH_SPEED + size * MOUTH_SPEED_FACTOR;
   }
 
   joinTeam(team) {
@@ -86,16 +67,12 @@ class PacMan {
 
   addPoints(amount) {
     this.points += amount;
-    this.size = this._calcSize();
-    this.speed = this._calcSpeed();
-    this.mouthSpeed = this._calcMouthSpeed();
+    // size/speed recalculated by GrowthSystem.updateEntity() each tick
   }
 
   takeDamage(amount) {
     this.points = Math.max(0, this.points - amount);
-    this.size = this._calcSize();
-    this.speed = this._calcSpeed();
-    this.mouthSpeed = this._calcMouthSpeed();
+    // size/speed recalculated by GrowthSystem.updateEntity() each tick
   }
 
   isEliminated() {
@@ -169,7 +146,7 @@ class PacMan {
 
   getSizeMultiplier() {
     if (!this.activeGift) return 1;
-    if (this.activeGift.type === 'firetruck') return 1.4;
+    if (this.activeGift.type === 'firetruck') return 2.0;
     return 1;
   }
 

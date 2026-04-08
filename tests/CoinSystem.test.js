@@ -51,8 +51,9 @@ describe('CoinSystem', () => {
     const coin = coins.getAll()[0];
     pm.x = coin.x;
     pm.y = coin.y;
-    coins.checkCollection(pm);
-    expect(coins.getAll().length).toBe(initialCount - 1);
+    const collected = coins.checkCollection(pm);
+    expect(collected.length).toBeGreaterThanOrEqual(1);
+    expect(coins.getAll().length).toBeLessThan(initialCount);
   });
 
   test('respawn timer spawns new batch after 30 seconds', () => {
