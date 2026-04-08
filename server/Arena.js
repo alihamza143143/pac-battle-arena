@@ -1,6 +1,8 @@
 const PacMan = require('./PacMan');
 
-const TARGET_AI_COUNT = 20;
+const BOTS_PER_TEAM = 15;
+const ACTIVE_PER_TEAM = 6;
+const INACTIVE_PER_TEAM = 9;
 
 class Arena {
   constructor() {
@@ -30,8 +32,8 @@ class Arena {
     return Array.from(this.entities.values());
   }
 
-  getAICount() {
-    return this.getAll().filter(p => p.type === 'ai').length;
+  getAIByTeam(team) {
+    return this.getAll().filter(p => p.type === 'ai' && p.team === team);
   }
 
   getTeamEntities(team) {
@@ -60,39 +62,32 @@ class Arena {
   }
 
   spawnInitialAI() {
-    // Spread AI across a 5x4 grid so they cover the whole arena
-    const cols = 5;
-    const rows = 4;
-    const cellW = (1080 - 120) / cols; // arena minus padding
-    const cellH = (1080 - 120) / rows;
-    let idx = 0;
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const team = idx % 2 === 0 ? 'blue' : 'pink';
-        const state = idx < 10 ? 'active' : 'inactive';
+    // Spawn 15 pink + 15 blue bots
+    // 6 active + 9 inactive per team
+    for (const team of ['pink', 'blue']) {
+      for (let i = 0; i < BOTS_PER_TEAM; i++) {
+        const state = i < ACTIVE_PER_TEAM ? 'active' : 'inactive';
         const pm = new PacMan({ type: 'ai', team, state });
-        // Place in grid cell with small random offset
-        pm.x = 60 + col * cellW + cellW / 2 + (Math.random() - 0.5) * cellW * 0.6;
-        pm.y = 60 + row * cellH + cellH / 2 + (Math.random() - 0.5) * cellH * 0.6;
+        // Spread across arena with random positions
+        pm.x = 60 + Math.random() * (1080 - 120);
+        pm.y = 60 + Math.random() * (1080 - 120);
         this.addEntity(pm);
-        idx++;
       }
     }
   }
 
   respawnAI() {
-    const currentAI = this.getAICount();
-    const needed = TARGET_AI_COUNT - currentAI;
-    if (needed <= 0) return;
-    // Check current active/inactive balance and fill gaps
-    const ai = this.getAll().filter(p => p.type === 'ai');
-    const activeCount = ai.filter(p => p.state === 'active').length;
-    const inactiveCount = ai.filter(p => p.state === 'inactive').length;
-    for (let i = 0; i < needed; i++) {
-      const team = i % 2 === 0 ? 'blue' : 'pink';
-      // Maintain 10/10 split: fill whichever side is short
-      const state = (activeCount + i) < 10 ? 'active' : 'inactive';
-      this.addEntity(new PacMan({ type: 'ai', team, state }));
+    // Maintain exactly 15 pink + 15 blue bots (6 active + 9 inactive each)
+    for (const team of ['pink', 'blue']) {
+      const teamAI = this.getAIByTeam(team);
+      const needed = BOTS_PER_TEAM - teamAI.length;
+      if (needed <= 0) continue;
+
+      const activeCount = teamAI.filter(p => p.state === 'active').length;
+      for (let i = 0; i < needed; i++) {
+        const state = (activeCount + i) < ACTIVE_PER_TEAM ? 'active' : 'inactive';
+        this.addEntity(new PacMan({ type: 'ai', team, state }));
+      }
     }
   }
 

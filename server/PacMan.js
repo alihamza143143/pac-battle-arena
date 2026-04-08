@@ -122,8 +122,18 @@ class PacMan {
 
   applyGift(giftType, color, durationMs) {
     const tiers = { rose: 1, donut: 2, confetti: 3, moneygun: 4, firetruck: 5 };
-    if (this.activeGift && tiers[this.activeGift.type] >= tiers[giftType]) {
-      return false;
+    if (this.activeGift) {
+      // Same gift type: stack duration (5 roses = 5 seconds)
+      if (this.activeGift.type === giftType) {
+        this.activeGift.remainingMs += durationMs;
+        this.lastActivityTime = Date.now();
+        this.state = 'active';
+        return true;
+      }
+      // Higher or equal tier already active: reject lower tier
+      if (tiers[this.activeGift.type] >= tiers[giftType]) {
+        return false;
+      }
     }
     this.activeGift = { type: giftType, remainingMs: durationMs, color };
     this.lastActivityTime = Date.now();
