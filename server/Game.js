@@ -176,6 +176,9 @@ class Game {
         }
 
         if (pm.team) {
+          // repeatCount from TikTok (e.g. 5 roses = repeatCount 5)
+          const repeatCount = event.repeatCount || 1;
+
           if (giftType === 'moneygun') {
             const result = GiftSystem.applyMoneyGun(pm, this.arena);
             this.frozenUntil = Date.now() + 4000;
@@ -193,14 +196,15 @@ class Game {
               totalStolen: result.totalStolen,
             });
           } else if (giftType !== 'tiktok') {
-            const applied = GiftSystem.applyGift(pm, giftType);
-            if (applied) {
-              this.visualEvents.push({
-                type: 'gift',
-                giftType: giftType,
-                userId: pm.id,
-              });
+            // Apply gift N times for stacking (5 roses = 5x duration)
+            for (let i = 0; i < repeatCount; i++) {
+              GiftSystem.applyGift(pm, giftType);
             }
+            this.visualEvents.push({
+              type: 'gift',
+              giftType: giftType,
+              userId: pm.id,
+            });
           }
         }
         break;

@@ -43,13 +43,17 @@ class TikTokBridge {
     });
 
     this.connection.on('gift', (data) => {
-      if (data.giftType === 1 && !data.repeatEnd) return;
-
       const giftType = GiftMapper.mapGift(data.giftName);
       if (!giftType) {
-        console.log(`Unknown gift: ${data.giftName}`);
+        console.log(`Unknown gift: ${data.giftName} (id: ${data.giftId}, type: ${data.giftType})`);
         return;
       }
+
+      // For streakable/repeatable gifts (giftType === 1):
+      // TikTok fires multiple events during a streak, then one final with repeatEnd=true
+      // We process EVERY event so duration stacks properly (5 roses = 5 events = 5s)
+      // For non-repeatable gifts (giftType !== 1): always process
+      const repeatCount = data.repeatCount || 1;
 
       this.eventQueue.push({
         type: 'gift',
@@ -59,7 +63,10 @@ class TikTokBridge {
         giftType,
         giftName: data.giftName,
         diamondCount: data.diamondCount,
+        repeatCount,
       });
+
+      console.log(`Gift: ${data.giftName} → ${giftType} (x${repeatCount}) from ${data.uniqueId}`);
     });
 
     this.connection.on('member', (data) => {

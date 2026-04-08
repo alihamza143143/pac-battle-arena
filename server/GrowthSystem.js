@@ -1,14 +1,12 @@
-const BASE_SIZE = 25;
-const MAX_SIZE = 90; // practical visual cap
-const GROWTH_RATE = 0.0008; // diminishing returns curve
-const BASE_SPEED = 0.9;
-const SPEED_FACTOR = 0.015;
+const BASE_SIZE = 50;  // 2x bigger (was 25)
+const MAX_SIZE = 160;  // 2x bigger (was 90)
+const GROWTH_RATE = 0.0008;
+const BASE_SPEED = 1.1; // slightly faster base
+const SPEED_FACTOR = 0.012;
 const BASE_MOUTH_SPEED = 0.8;
-const MOUTH_SPEED_FACTOR = 0.015;
+const MOUTH_SPEED_FACTOR = 0.012;
 
 const GrowthSystem = {
-  // Logarithmic growth: grows fast early, slows down at high points
-  // 500 pts → ~38px, 1000 pts → ~50px, 2000 pts → ~63px, 5000 pts → ~78px, 10000 pts → ~86px
   calcSize(points) {
     return BASE_SIZE + (MAX_SIZE - BASE_SIZE) * (1 - Math.exp(-GROWTH_RATE * points));
   },

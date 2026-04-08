@@ -76,13 +76,13 @@ class PacManRenderer {
     sprite.anchor.set(0.5);
 
     const label = new PIXI.Text('', {
-      fontFamily: 'Arial', fontSize: 11, fill: 0xffffff,
+      fontFamily: 'Arial', fontSize: 15, fill: 0xffffff,
       align: 'center', strokeThickness: 3, stroke: 0x000000, fontWeight: 'bold',
     });
     label.anchor.set(0.5, 1);
     this.container.addChild(label);
 
-    const crown = new PIXI.Text('👑', { fontSize: 18 });
+    const crown = new PIXI.Text('👑', { fontSize: 22 });
     crown.anchor.set(0.5, 1);
     crown.visible = false;
     this.container.addChild(crown);
@@ -267,15 +267,15 @@ class PacManRenderer {
     }
 
     // ── Label ──
-    const labelOffset = totalR + 4;
+    const labelOffset = totalR + 6;
     if (!entity.team) {
       label.text = 'Wähle ein Team';
       label.style.fill = 0xff6666;
-      label.style.fontSize = 10;
+      label.style.fontSize = 13;
     } else {
       label.text = `${entity.username}  ${entity.points}`;
       label.style.fill = 0xffffff;
-      label.style.fontSize = 11;
+      label.style.fontSize = 15;
     }
     label.x = entity.x;
     label.y = entity.y - labelOffset;
