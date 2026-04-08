@@ -98,7 +98,8 @@ class PacMan {
     if (this.state === 'active' && this.team) {
       if (now - this.lastActivityTime > INACTIVE_TIMEOUT) {
         this.state = 'inactive';
-        this.mouthSpeed = this._calcMouthSpeed();
+        this.mouthAngle = 0;
+        this.mouthSpeed = 0;
       }
     }
   }
