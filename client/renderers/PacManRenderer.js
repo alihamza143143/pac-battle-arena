@@ -51,10 +51,9 @@ class PacManRenderer {
     }
   }
 
-  _getTeamColor(entity) {
-    if (!entity.team) return { hex: '#ff0000', glow: '#ff0000' };
-    if (entity.team === 'blue') return { hex: '#4488ff', glow: '#4488ff' };
-    return { hex: '#ff4da6', glow: '#ff4da6' };
+  _getEntityColor(entity) {
+    if (entity.state === 'active') return { hex: '#ffd700', glow: '#ffd700' }; // gold when active
+    return { hex: '#888888', glow: '#888888' }; // gray when inactive
   }
 
   _getBoostConfig(entity) {
@@ -98,7 +97,7 @@ class PacManRenderer {
   }
 
   _updateGroup(group, entity) {
-    const teamColor = this._getTeamColor(entity);
+    const teamColor = this._getEntityColor(entity);
     const boostConfig = this._getBoostConfig(entity);
     const r = entity.size / 2;
     const borderW = Math.max(5, r * 0.16);
@@ -256,27 +255,18 @@ class PacManRenderer {
     sprite.x = entity.x;
     sprite.y = entity.y;
 
-    // ── Inactive dim (also check like-active for mouth) ──
-    const isLiking = entity.lastLikeTime && (Date.now() - entity.lastLikeTime < 500);
-    if (entity.state === 'inactive' && !isLiking) {
+    // ── Inactive dim ──
+    if (entity.state === 'inactive') {
       sprite.alpha = 0.35;
-    } else if (entity.state === 'inactive' && isLiking) {
-      sprite.alpha = 0.6; // liking but inactive — slightly visible
     } else {
       sprite.alpha = 1;
     }
 
     // ── Label ──
     const labelOffset = totalR + 6;
-    if (!entity.team) {
-      label.text = 'Wähle ein Team';
-      label.style.fill = 0xff6666;
-      label.style.fontSize = 13;
-    } else {
-      label.text = `${entity.username}  ${entity.points}`;
-      label.style.fill = 0xffffff;
-      label.style.fontSize = 15;
-    }
+    label.text = `${entity.username}  ${entity.points}`;
+    label.style.fill = entity.state === 'active' ? 0xffffff : 0xaaaaaa;
+    label.style.fontSize = 15;
     label.x = entity.x;
     label.y = entity.y - labelOffset;
 

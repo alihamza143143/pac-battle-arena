@@ -2,22 +2,18 @@ const crypto = require('crypto');
 
 const ARENA_SIZE = 1080;
 const ARENA_PADDING = 60;
-// NOTE: size/speed/mouthSpeed are recalculated every tick by GrowthSystem.
-// These are only used for initial values before the first tick.
-const INACTIVE_TIMEOUT = 15000;
 
 class PacMan {
-  constructor({ type, team = null, state = null, username = null, avatarUrl = null }) {
+  constructor({ type, state = null, username = null, avatarUrl = null }) {
     this.id = crypto.randomUUID();
     this.type = type;
-    this.team = type === 'player' ? null : team;
     this.username = username || 'Player';
     this.avatarUrl = avatarUrl || null;
 
     if (state) {
       this.state = state;
     } else if (type === 'player') {
-      this.state = 'neutral';
+      this.state = 'inactive'; // starts inactive, activates on like/gift
     } else {
       this.state = 'inactive';
     }
@@ -27,60 +23,42 @@ class PacMan {
     this.angle = Math.random() * Math.PI * 2;
 
     this.points = 500;
-    this.size = 45;  // will be overwritten by GrowthSystem on first tick
-    this.speed = 1.5; // will be overwritten by GrowthSystem on first tick
+    this.size = 45;
+    this.speed = 1.5;
 
     this.mouthAngle = 0;
     this.mouthOpening = true;
-    this.mouthSpeed = 0; // will be overwritten by GrowthSystem on first tick
+    this.mouthSpeed = 0;
 
     this.activeGift = null;
-    this.activatedByGift = false; // true if player used Rose or higher gift (not just likes)
-    this.lastLikeTime = 0; // timestamp of last like
     this.isKing = false;
     this.lastActivityTime = Date.now();
+    // Like system: player is active ONLY while likes are coming in real-time
     this.likeActiveUntil = 0;
     this.hitCooldowns = {};
     this.dirChangeTimer = 800 + Math.random() * 1500;
   }
 
-  joinTeam(team) {
-    this.team = team;
+  activate() {
     this.state = 'active';
     this.lastActivityTime = Date.now();
-    this.activatedByGift = true;
   }
 
-  activate() {
-    if (this.team) {
-      this.state = 'active';
-      this.lastActivityTime = Date.now();
-    }
-  }
-
+  // Like = real-time movement. Each like extends the window.
+  // If likes stop coming, player stops after 500ms.
   activateByLike() {
-    if (this.team) {
-      this.lastLikeTime = Date.now();
-      this.lastActivityTime = Date.now();
-      // Like activates for 0.5s with mouth animation, can collect coins
-      if (this.state !== 'active') {
-        this.state = 'active';
-      }
-      // Set a like-boost that expires in 0.5s
-      if (!this.activeGift) {
-        this.likeActiveUntil = Date.now() + 500;
-      }
-    }
+    this.lastActivityTime = Date.now();
+    this.state = 'active';
+    // Each like refreshes the active window to 500ms from now
+    this.likeActiveUntil = Date.now() + 500;
   }
 
   addPoints(amount) {
     this.points += amount;
-    // size/speed recalculated by GrowthSystem.updateEntity() each tick
   }
 
   takeDamage(amount) {
     this.points = Math.max(0, this.points - amount);
-    // size/speed recalculated by GrowthSystem.updateEntity() each tick
   }
 
   isEliminated() {
@@ -92,18 +70,18 @@ class PacMan {
   }
 
   canBeAttacked() {
-    return this.state === 'inactive' || this.state === 'neutral';
+    return this.state === 'inactive';
   }
 
   canCollectCoins() {
-    // All active players can collect coins (including like-activated)
     return this.state === 'active';
   }
 
   checkInactivity(now) {
     if (this.type === 'ai') return;
-    // Like-only activation expires after 0.5s
-    if (this.state === 'active' && this.team && !this.activeGift && this.likeActiveUntil > 0) {
+
+    // Like-only activation: expires when likes stop
+    if (this.state === 'active' && !this.activeGift && this.likeActiveUntil > 0) {
       if (now > this.likeActiveUntil) {
         this.state = 'inactive';
         this.mouthAngle = 0;
@@ -111,26 +89,20 @@ class PacMan {
         this.likeActiveUntil = 0;
       }
     }
-    if (this.state === 'active' && this.team) {
-      if (now - this.lastActivityTime > INACTIVE_TIMEOUT) {
-        this.state = 'inactive';
-        this.mouthAngle = 0;
-        this.mouthSpeed = 0;
-      }
-    }
   }
 
+  // Gift: REFRESH timer (not stack). Same gift resets to full duration.
   applyGift(giftType, color, durationMs) {
     const tiers = { rose: 1, donut: 2, confetti: 3, moneygun: 4, firetruck: 5 };
     if (this.activeGift) {
-      // Same gift type: stack duration (5 roses = 5 seconds)
+      // Same gift: REFRESH timer (reset to full duration, not add)
       if (this.activeGift.type === giftType) {
-        this.activeGift.remainingMs += durationMs;
+        this.activeGift.remainingMs = durationMs; // REFRESH, not stack
         this.lastActivityTime = Date.now();
         this.state = 'active';
         return true;
       }
-      // Higher or equal tier already active: reject lower tier
+      // Higher tier replaces lower
       if (tiers[this.activeGift.type] >= tiers[giftType]) {
         return false;
       }
@@ -138,7 +110,7 @@ class PacMan {
     this.activeGift = { type: giftType, remainingMs: durationMs, color };
     this.lastActivityTime = Date.now();
     this.state = 'active';
-    this.activatedByGift = true;
+    this.likeActiveUntil = 0; // gift takes over from likes
     return true;
   }
 
@@ -147,7 +119,6 @@ class PacMan {
     this.activeGift.remainingMs -= dt;
     if (this.activeGift.remainingMs <= 0) {
       this.activeGift = null;
-      // CRITICAL: player becomes inactive immediately when gift ends
       if (this.type === 'player') {
         this.state = 'inactive';
         this.mouthAngle = 0;
@@ -187,7 +158,6 @@ class PacMan {
   }
 
   getDamagePerHit() {
-    // Like-only players deal 10 damage per contact
     if (!this.activeGift) return 10;
     const damage = {
       rose: 20,
@@ -199,27 +169,15 @@ class PacMan {
     return damage[this.activeGift.type] || 10;
   }
 
+  // Everyone vs everyone — no team protection
   canHitTarget(target) {
     if (!this.canAttack()) return false;
-    // Same team protection — teammates can't damage each other
-    // Exception: Money Gun & Fire Truck hit everyone (no protection)
-    if (this.team && target.team && this.team === target.team) {
-      if (!this.activeGift || (this.activeGift.type !== 'firetruck' && this.activeGift.type !== 'moneygun')) {
-        return false;
-      }
-    }
-    // Money Gun & Fire Truck: can hit ALL players (no protection applies)
+    if (target.id === this.id) return false;
+    // MoneyGun & FireTruck: hit everyone
     if (this.activeGift && (this.activeGift.type === 'firetruck' || this.activeGift.type === 'moneygun')) {
-      return target.id !== this.id;
+      return true;
     }
-    // Like, Rose, Confetti: only hit unprotected/inactive players
-    if (!this.activeGift || this.activeGift.type === 'rose' || this.activeGift.type === 'confetti') {
-      return target.canBeAttacked();
-    }
-    // Donut: can hit players without active gift
-    if (this.activeGift.type === 'donut') {
-      return !target.activeGift;
-    }
+    // Normal: can only hit inactive players
     return target.canBeAttacked();
   }
 
@@ -238,8 +196,8 @@ class PacMan {
     const actualSpeed = this.speed * speedMult;
 
     let moveFactor = 1;
-    if (this.state === 'inactive') moveFactor = 0.3;
-    if (this.state === 'neutral') moveFactor = 0.2;
+    // Inactive players (and bots) move very slowly
+    if (this.state === 'inactive') moveFactor = 0.2;
 
     this.x += Math.cos(this.angle) * actualSpeed * moveFactor * (dt / 16);
     this.y += Math.sin(this.angle) * actualSpeed * moveFactor * (dt / 16);
@@ -251,8 +209,7 @@ class PacMan {
     if (this.y < halfSize) { this.y = halfSize; this.angle = -this.angle; }
     if (this.y > ARENA_SIZE - halfSize) { this.y = ARENA_SIZE - halfSize; this.angle = -this.angle; }
 
-    const isLiking = this.lastLikeTime && (Date.now() - this.lastLikeTime < 500);
-    if (this.state === 'active' || isLiking) {
+    if (this.state === 'active') {
       const mouthMult = this.getMouthSpeedMultiplier();
       if (this.mouthOpening) {
         this.mouthAngle += this.mouthSpeed * mouthMult * (dt / 16);
@@ -288,7 +245,6 @@ class PacMan {
       id: this.id,
       type: this.type,
       state: this.state,
-      team: this.team,
       username: this.username,
       avatarUrl: this.avatarUrl,
       x: this.x,
@@ -301,8 +257,6 @@ class PacMan {
       mouthSpeed: this.mouthSpeed * this.getMouthSpeedMultiplier(),
       activeGift: this.activeGift ? { type: this.activeGift.type, color: this.activeGift.color, remainingMs: this.activeGift.remainingMs } : null,
       isKing: this.isKing,
-      activatedByGift: this.activatedByGift,
-      lastLikeTime: this.lastLikeTime,
     };
   }
 }

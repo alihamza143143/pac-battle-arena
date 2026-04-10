@@ -99,10 +99,8 @@ function createDebugPanel() {
     <input id="dbg-name" value="TestPlayer" placeholder="Username"
       style="width:100%;background:#0f3460;color:#fff;border:1px solid #444;padding:4px 6px;border-radius:3px;margin-bottom:6px;font-size:11px;">
     <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;">
-      <button onclick="dbgSend('join')" style="${btnStyle}background:#555;color:#fff;">Join</button>
       <button onclick="dbgSend('like')" style="${btnStyle}background:#00cc66;color:#fff;">❤️ Like</button>
-      <button onclick="dbgGift('rose')" style="${btnStyle}background:#ff69b4;color:#fff;">🌹 Girls</button>
-      <button onclick="dbgChat('GG')" style="${btnStyle}background:#4488ff;color:#fff;">GG Boys</button>
+      <button onclick="dbgSpamLikes()" style="${btnStyle}background:#00aa55;color:#fff;">❤️x10</button>
     </div>
     <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px;">
       <button onclick="dbgGift('rose')" style="${btnStyle}background:#ff69b4;color:#fff;">🌹</button>
@@ -136,40 +134,20 @@ window.dbgSend = function(type) {
   dbgLog(`${type}: ${name}`);
 };
 
-window.dbgChat = function(message) {
-  const name = document.getElementById('dbg-name').value || 'TestPlayer';
-  fetch('/debug-event', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'join', username: name, nickname: name, avatarUrl: '' }) });
-  setTimeout(() => {
-    fetch('/debug-event', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'chat', username: name, nickname: name, avatarUrl: '', comment: message }) });
-    dbgLog(`chat: ${message} (${name})`);
-  }, 100);
-};
-
 window.dbgGift = function(giftType) {
   const name = document.getElementById('dbg-name').value || 'TestPlayer';
-  // Auto-join first if needed
   fetch('/debug-event', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'join', username: name, nickname: name, avatarUrl: '' }) });
-  setTimeout(() => {
-    fetch('/debug-event', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'gift', username: name, nickname: name, avatarUrl: '', giftType }) });
-    dbgLog(`gift: ${giftType} (${name})`);
-  }, 100);
+    body: JSON.stringify({ type: 'gift', username: name, nickname: name, avatarUrl: '', giftType }) });
+  dbgLog(`gift: ${giftType} (${name})`);
 };
 
 window.dbgSpawnAll = function() {
-  const players = [['Sara','rose'],['Omar','tiktok'],['Mina','rose'],['Zain','tiktok'],['Hana','rose'],['Ali','tiktok']];
-  players.forEach(([name, team], i) => {
+  const players = ['Sara','Omar','Mina','Zain','Hana','Ali'];
+  players.forEach((name, i) => {
     setTimeout(() => {
       fetch('/debug-event', { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({type:'join',username:name,nickname:name,avatarUrl:''})});
-      setTimeout(() => {
-        fetch('/debug-event', { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({type:'gift',username:name,nickname:name,avatarUrl:'',giftType:team})});
-      }, 150);
-    }, i * 300);
+        body: JSON.stringify({type:'like',username:name,nickname:name,avatarUrl:''})});
+    }, i * 200);
   });
   dbgLog('Spawned 6 players');
 };
@@ -192,11 +170,11 @@ window.dbgChaos = function() {
       body: JSON.stringify({type:'gift',username:'Omar',giftType:'donut'})});
     fetch('/debug-event', { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({type:'gift',username:'Zain',giftType:'moneygun'})});
-  }, 2500);
+  }, 1500);
   setTimeout(() => {
     fetch('/debug-event', { method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({type:'gift',username:'Hana',giftType:'firetruck'})});
-  }, 6000);
+  }, 5000);
   dbgLog('🔥 CHAOS MODE!');
 };
 

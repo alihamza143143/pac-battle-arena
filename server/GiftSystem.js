@@ -1,5 +1,5 @@
 const GIFT_CONFIG = {
-  rose:      { color: '#ff0000', duration: 1000, tier: 1 },
+  rose:      { color: '#ff0000', duration: 2000, tier: 1 },   // 2 seconds
   donut:     { color: '#ffff00', duration: 3000, tier: 2 },
   confetti:  { color: '#ff00ff', duration: 3000, tier: 3 },
   moneygun:  { color: '#ffd700', duration: 4000, tier: 4 },
@@ -7,6 +7,7 @@ const GIFT_CONFIG = {
 };
 
 class GiftSystem {
+  // Apply gift — REFRESHES timer (does NOT stack)
   static applyGift(pacman, giftType) {
     const config = GIFT_CONFIG[giftType];
     if (!config) return false;
@@ -14,12 +15,13 @@ class GiftSystem {
     return pacman.applyGift(giftType, config.color, config.duration);
   }
 
+  // MoneyGun: freeze all, steal points from everyone
   static applyMoneyGun(user, arena) {
     const config = GIFT_CONFIG.moneygun;
     user.applyGift('moneygun', config.color, config.duration);
     user.activate();
 
-    const allOthers = arena.getAll().filter(p => p.id !== user.id && p.team !== user.team);
+    const allOthers = arena.getAll().filter(p => p.id !== user.id);
     const frozen = [];
     let totalStolen = 0;
 
@@ -30,22 +32,17 @@ class GiftSystem {
       frozen.push(other.id);
     }
 
-    // Also freeze same-team players (they don't lose points but still freeze)
-    const sameTeam = arena.getAll().filter(p => p.id !== user.id && p.team === user.team);
-    for (const other of sameTeam) {
-      frozen.push(other.id);
-    }
-
     user.addPoints(totalStolen);
     return { frozen, totalStolen };
   }
 
+  // FireTruck: boss mode, steal from everyone
   static applyFireTruck(user, arena) {
     const config = GIFT_CONFIG.firetruck;
     user.applyGift('firetruck', config.color, config.duration);
     user.activate();
 
-    const allOthers = arena.getAll().filter(p => p.id !== user.id && p.team !== user.team);
+    const allOthers = arena.getAll().filter(p => p.id !== user.id);
     let totalStolen = 0;
 
     for (const other of allOthers) {
