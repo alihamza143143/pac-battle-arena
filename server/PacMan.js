@@ -44,13 +44,14 @@ class PacMan {
     this.lastActivityTime = Date.now();
   }
 
-  // Like = real-time movement. Each like extends the window.
-  // If likes stop coming, player stops after 500ms.
+  // Like = continuous movement. Each like refreshes the window.
+  // If likes stop coming, player stops after 1 second.
   activateByLike() {
     this.lastActivityTime = Date.now();
     this.state = 'active';
-    // Each like refreshes the active window to 500ms from now
-    this.likeActiveUntil = Date.now() + 500;
+    // Each like refreshes the active window to 1s from now
+    // This creates continuous movement as long as likes keep coming
+    this.likeActiveUntil = Date.now() + 1000;
   }
 
   addPoints(amount) {
